@@ -24,6 +24,9 @@ dependencies:
 - Spock >= 0.11
 - mtl
 - text
+- postgresql-simple
+- bytestring
+- scientific
 
 library:
   source-dirs: src
