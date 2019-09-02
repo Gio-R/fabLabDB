@@ -20,6 +20,7 @@ import Data.Scientific
 import Data.Time.Calendar
 import Database.Beam
 import Database.Beam.Postgres
+import Database.Beam.Query
 
 -- costants
 uri :: ByteString
@@ -27,6 +28,9 @@ uri = "postgres://postgres:14102002@localhost/FabLab"
 
 runBeam :: (String -> IO ()) -> Connection -> Pg a -> IO a
 runBeam = runBeamPostgresDebug -- change for debug or production purposes
+
+allPeople :: Q Postgres FabLabDB s (PersonT (QExpr Postgres s))
+allPeople = all_ (_persone fabLabDB)
 
 -- datatypes
 -- |Data representing a person in the database
@@ -238,21 +242,58 @@ deriving instance Show UseId
 -- |Data representing the database
 data FabLabDB f = FabLabDB { _persone :: f (TableEntity PersonT)
                            , _stampe :: f (TableEntity PrintT)
+                           , _intagli :: f (TableEntity CutT)
+                           , _stampanti :: f (TableEntity PrinterT)
+                           , _plastiche :: f (TableEntity PlasticT)
+                           , _filamenti :: f (TableEntity FilamentT)
+                           , _lavorazioni :: f (TableEntity ProcessingT)
+                           , _tipi :: f (TableEntity TypeT)
+                           , _materials :: f (TableEntity MaterialT)
                            , _classi_di_materiali :: f (TableEntity MaterialsClassT)
+                           , _composizioni :: f (TableEntity CompositionT)
+                           , _usi :: f (TableEntity UseT)
                            } deriving (Database be, Generic)
 
 fabLabDB :: DatabaseSettings be FabLabDB
 fabLabDB = defaultDbSettings
 
 -- people queries
--- |Function to add a person to the database using the given connection
+-- |Select all people in the database
+selectAllPeople :: IO [Person]
+selectAllPeople = do
+                    conn <- connectPostgreSQL uri
+                    runBeam putStrLn conn $ runSelectReturningList $ select allPeople
+
+-- |Select all laser cutter operators in the database
+selectLaserCutterOperators :: IO [Person]
+selectLaserCutterOperators = do
+                                conn <- connectPostgreSQL uri
+                                runBeam putStrLn conn $ runSelectReturningList $ select $ filter_ (\p -> _personOperatoreIntagliatrice p ==. (val_ True)) allPeople
+
+-- |Select all 3D printer operators in the database
+selectPrinterOperators :: IO [Person]
+selectPrinterOperators = do
+                            conn <- connectPostgreSQL uri
+                            runBeam putStrLn conn $ runSelectReturningList $ select $ filter_ (\p -> _personOperatoreStampante p ==. (val_ True)) allPeople
+
+-- |Function to add a person to the database
 insertPerson :: String -> String -> String -> IO ()
 insertPerson cf name surname = do
                                 conn <- connectPostgreSQL uri
                                 runBeam putStrLn conn $ runInsert $ insert (_persone fabLabDB) $ insertValues [ Person (pack cf) (pack name) (pack surname) False False False 0.0 ]
 
+-- |Function to modify a person already in the database
+modifyPerson :: String -> Bool -> Bool -> Bool -> IO ()
+modifyPerson cf partner cutter printer = do
+                                            conn <- connectPostgreSQL uri
+                                            runBeam putStrLn conn $ runUpdate $ update (_persone fabLabDB) 
+                                                                                       (\p -> mconcat [ _personSocio p <-. (val_ partner)
+                                                                                                      , _personOperatoreIntagliatrice p <-. (val_ cutter)
+                                                                                                      , _personOperatoreStampante p <-. (val_ printer) ]) 
+                                                                                       (\p -> _personCf p ==. (val_ (pack cf)))
+
 -- materials queries
--- |Function to add a person to the database using the given connection
+-- |Function to add a person to the database
 insertMaterialsClass :: String -> String -> IO ()
 insertMaterialsClass code name = do
                                     conn <- connectPostgreSQL uri
