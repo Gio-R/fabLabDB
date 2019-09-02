@@ -24,9 +24,11 @@ dependencies:
 - Spock >= 0.11
 - mtl
 - text
-- postgresql-simple
+- beam-core
+- beam-postgres
 - bytestring
 - scientific
+- time
 
 library:
   source-dirs: src
