@@ -24,9 +24,10 @@ dependencies:
 - Spock >= 0.11
 - mtl
 - text
-- beam-core
+- beam-core 
 - beam-postgres
 - bytestring
+- utf8-string
 - scientific
 - time
 

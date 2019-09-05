@@ -1,6 +1,7 @@
 module Main where
 
-import Database
+import Schema
+import Query
 
 main :: IO ()
 main = putStrLn "main"
