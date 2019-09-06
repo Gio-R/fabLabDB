@@ -24,8 +24,8 @@ import Database.Beam.Postgres
 import Database.Beam.Schema.Tables
 
 -- costants
-uri :: String
-uri = "postgres://postgres:14102002@localhost/FabLab"
+createUri :: String -> String -> String
+createUri user pswd = "postgres://" ++ user ++ ":" ++ pswd ++ "@localhost/FabLab"
 
 -- datatypes
 -- |Data representing a person in the database
