@@ -51,6 +51,14 @@ allPlastics = all_ (_plastiche fabLabDB)
 connect :: String -> IO Connection
 connect uri = connectPostgreSQL $ fromString uri
 
+-- |Prepares a code to be used as key
+prepareCode :: String -> Text
+prepareCode = toUpper . pack
+
+-- |Prepares a string to be used as a name in the database
+prepareName :: String -> Text
+prepareName = toTitle . pack
+
 -- people queries
 -- |Select all people in the database
 selectAllPeople :: Connection -> IO [Person]
@@ -93,9 +101,9 @@ insertPerson cf name surname =
       $ insert (_persone fabLabDB)
       $ insertValues
           [ Person
-              (pack cf)
-              (pack name)
-              (pack surname)
+              (prepareCode cf)
+              (prepareName name)
+              (prepareName surname)
               False
               False
               False
@@ -116,7 +124,7 @@ modifyPerson cf partner cutter printer =
                   _personOperatoreStampante p <-. (val_ printer)
                   ]
             )
-          (\p -> _personCf p ==. (val_ (pack cf)))
+          (\p -> _personCf p ==. (val_ (prepareCode cf)))
 
 -- materials queries
 -- |Select all the materials classes with the given code (should be 1 or 0)
@@ -126,7 +134,7 @@ selectMaterialsClassFromCode code =
     runBeam conn
       $ runSelectReturningList
       $ select
-      $ filter_ (\c -> _materialsclassCodiceClasse c ==. (val_ (pack code))) allMaterialsClasses
+      $ filter_ (\c -> _materialsclassCodiceClasse c ==. (val_ (prepareCode code))) allMaterialsClasses
 
 -- |Select all materials with the given code (should be 1 or 0)
 selectMaterialFromCode :: String -> (Connection -> IO [Material])
@@ -135,7 +143,7 @@ selectMaterialFromCode code =
     runBeam conn
       $ runSelectReturningList
       $ select
-      $ filter_ (\m -> _materialCodiceMateriale m ==. (val_ (pack code))) allMaterials
+      $ filter_ (\m -> _materialCodiceMateriale m ==. (val_ (prepareCode code))) allMaterials
 
 -- |Select all types of processing with the given code (should be 1 or 0)
 selectTypeFromCode :: String -> (Connection -> IO [Type])
@@ -144,7 +152,7 @@ selectTypeFromCode code =
     runBeam conn
       $ runSelectReturningList
       $ select
-      $ filter_ (\t -> _typeCodiceTipo t ==. (val_ (pack code))) allTypes
+      $ filter_ (\t -> _typeCodiceTipo t ==. (val_ (prepareCode code))) allTypes
 
 -- |Add a class of materials to the database
 insertMaterialsClass :: String -> String -> (Connection -> IO ())
@@ -155,8 +163,8 @@ insertMaterialsClass code name =
       $ insert (_classi_di_materiali fabLabDB)
       $ insertValues
           [ MaterialsClass
-              (pack code)
-              (pack name)
+              (prepareCode code)
+              (prepareName name)
             ]
 
 -- |Add a material to the database. The code is the id of the material inside the materials class.
@@ -171,8 +179,8 @@ insertMaterial code classCode name width descr =
           $ insertValues
               [ Material
                   (pk mClass)
-                  (pack (classCode ++ code))
-                  (pack name)
+                  (prepareCode (classCode ++ code))
+                  (prepareName name)
                   width
                   (pack descr)
                 ]
@@ -187,8 +195,8 @@ insertType code name descr =
       $ insert (_tipi fabLabDB)
       $ insertValues
           [ Type
-              (pack code)
-              (pack name)
+              (prepareCode code)
+              (prepareName name)
               (pack descr)
             ]
 
@@ -207,7 +215,7 @@ insertProcessing typeCode materialCode maxPotency minPotency speed descr =
           $ insertValues
               [ Processing
                   (pk pType)
-                  (pack code)
+                  (prepareCode code)
                   (pk material)
                   maxPotency
                   minPotency
@@ -223,7 +231,7 @@ selectPlasticFromCode code =
     runBeam conn
       $ runSelectReturningList
       $ select
-      $ filter_ (\p -> _plasticCodicePlastica p ==. (val_ (pack code))) allPlastics
+      $ filter_ (\p -> _plasticCodicePlastica p ==. (val_ (prepareCode code))) allPlastics
 
 -- |Add a type of plastic to the database
 insertPlastic :: String -> String -> String -> (Connection -> IO ())
@@ -234,8 +242,8 @@ insertPlastic code name descr =
       $ insert (_plastiche fabLabDB)
       $ insertValues
           [ Plastic
-              (pack code)
-              (pack name)
+              (prepareCode code)
+              (prepareName name)
               (pack descr)
             ]
 
@@ -250,10 +258,10 @@ insertFilament code plasticCode brand color =
           $ insert (_filamenti fabLabDB)
           $ insertValues
               [ Filament
-                  (pack code)
+                  (prepareCode code)
                   (pk plastic)
-                  (pack brand)
-                  (pack color)
+                  (prepareName brand)
+                  (prepareName color)
                 ]
 
 -- printers queries
@@ -264,7 +272,7 @@ selectPrinterFromCode code =
     runBeam conn
       $ runSelectReturningList
       $ select
-      $ filter_ (\p -> _printerCodiceStampante p ==. (val_ (pack code))) allPrinters
+      $ filter_ (\p -> _printerCodiceStampante p ==. (val_ (prepareCode code))) allPrinters
 
 -- |Add a printer to the database
 insertPrinter :: String -> String -> String -> String -> (Connection -> IO ())
@@ -273,7 +281,13 @@ insertPrinter code brand model descr =
     runBeam conn
       $ runInsert
       $ insert (_stampanti fabLabDB)
-      $ insertValues [Printer (pack code) (pack brand) (pack model) (pack descr)]
+      $ insertValues
+          [ Printer
+              (prepareCode code)
+              (prepareName brand)
+              (prepareName model)
+              (pack descr)
+            ]
 
 -- |Assign a printer to a print
 assignPrinter :: String -> Int -> (Connection -> IO ())
