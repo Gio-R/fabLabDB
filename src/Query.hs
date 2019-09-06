@@ -26,8 +26,8 @@ import Database.Beam.Query
 import Schema
 
 -- constants
-runBeam :: (String -> IO ()) -> Connection -> Pg a -> IO a
-runBeam = runBeamPostgresDebug -- change for debug or production purposes
+runBeam :: Connection -> Pg a -> IO a
+runBeam = runBeamPostgres --Debug putStrLn -- change for debug or production purposes
 
 allPeople :: Q Postgres FabLabDB s (PersonT (QExpr Postgres s))
 allPeople = all_ (_persone fabLabDB)
@@ -41,6 +41,9 @@ allMaterials = all_ (_materiali fabLabDB)
 allTypes :: Q Postgres FabLabDB s (TypeT (QExpr Postgres s))
 allTypes = all_ (_tipi fabLabDB)
 
+allPrinters :: Q Postgres FabLabDB s (PrinterT (QExpr Postgres s))
+allPrinters = all_ (_stampanti fabLabDB)
+
 allPlastics :: Q Postgres FabLabDB s (PlasticT (QExpr Postgres s))
 allPlastics = all_ (_plastiche fabLabDB)
 
@@ -52,14 +55,14 @@ connect uri = connectPostgreSQL $ fromString uri
 -- |Select all people in the database
 selectAllPeople :: Connection -> IO [Person]
 selectAllPeople conn =
-  runBeam putStrLn conn
+  runBeam conn
     $ runSelectReturningList
     $ select allPeople
 
 -- |Select all laser cutter operators in the database
 selectLaserCutterOperators :: Connection -> IO [Person]
 selectLaserCutterOperators conn =
-  runBeam putStrLn conn
+  runBeam conn
     $ runSelectReturningList
     $ select
     $ filter_ (\p -> _personOperatoreIntagliatrice p ==. (val_ True)) allPeople
@@ -67,7 +70,7 @@ selectLaserCutterOperators conn =
 -- |Select all 3D printer operators in the database
 selectPrinterOperators :: Connection -> IO [Person]
 selectPrinterOperators conn =
-  runBeam putStrLn conn
+  runBeam conn
     $ runSelectReturningList
     $ select
     $ filter_ (\p -> _personOperatoreStampante p ==. (val_ True)) allPeople
@@ -76,7 +79,7 @@ selectPrinterOperators conn =
 selectPersonFromCF :: String -> (Connection -> IO [Person])
 selectPersonFromCF cf =
   \conn ->
-    runBeam putStrLn conn
+    runBeam conn
       $ runSelectReturningList
       $ select
       $ filter_ (\p -> _personCf p ==. (val_ (pack cf))) allPeople
@@ -85,7 +88,7 @@ selectPersonFromCF cf =
 insertPerson :: String -> String -> String -> (Connection -> IO ())
 insertPerson cf name surname =
   \conn ->
-    runBeam putStrLn conn
+    runBeam conn
       $ runInsert
       $ insert (_persone fabLabDB)
       $ insertValues
@@ -103,7 +106,7 @@ insertPerson cf name surname =
 modifyPerson :: String -> Bool -> Bool -> Bool -> (Connection -> IO ())
 modifyPerson cf partner cutter printer =
   \conn ->
-    runBeam putStrLn conn
+    runBeam conn
       $ runUpdate
       $ update (_persone fabLabDB)
           ( \p ->
@@ -120,7 +123,7 @@ modifyPerson cf partner cutter printer =
 selectMaterialsClassFromCode :: String -> (Connection -> IO [MaterialsClass])
 selectMaterialsClassFromCode code =
   \conn ->
-    runBeam putStrLn conn
+    runBeam conn
       $ runSelectReturningList
       $ select
       $ filter_ (\c -> _materialsclassCodiceClasse c ==. (val_ (pack code))) allMaterialsClasses
@@ -129,7 +132,7 @@ selectMaterialsClassFromCode code =
 selectMaterialFromCode :: String -> (Connection -> IO [Material])
 selectMaterialFromCode code =
   \conn ->
-    runBeam putStrLn conn
+    runBeam conn
       $ runSelectReturningList
       $ select
       $ filter_ (\m -> _materialCodiceMateriale m ==. (val_ (pack code))) allMaterials
@@ -138,7 +141,7 @@ selectMaterialFromCode code =
 selectTypeFromCode :: String -> (Connection -> IO [Type])
 selectTypeFromCode code =
   \conn ->
-    runBeam putStrLn conn
+    runBeam conn
       $ runSelectReturningList
       $ select
       $ filter_ (\t -> _typeCodiceTipo t ==. (val_ (pack code))) allTypes
@@ -147,7 +150,7 @@ selectTypeFromCode code =
 insertMaterialsClass :: String -> String -> (Connection -> IO ())
 insertMaterialsClass code name =
   \conn ->
-    runBeam putStrLn conn
+    runBeam conn
       $ runInsert
       $ insert (_classi_di_materiali fabLabDB)
       $ insertValues
@@ -162,7 +165,7 @@ insertMaterial code classCode name width descr =
   \conn -> do
     classes <- (selectMaterialsClassFromCode classCode) conn
     let mClass = Prelude.head classes :: MaterialsClass
-     in runBeam putStrLn conn
+     in runBeam conn
           $ runInsert
           $ insert (_materiali fabLabDB)
           $ insertValues
@@ -179,7 +182,7 @@ insertMaterial code classCode name width descr =
 insertType :: String -> String -> String -> (Connection -> IO ())
 insertType code name descr =
   \conn ->
-    runBeam putStrLn conn
+    runBeam conn
       $ runInsert
       $ insert (_tipi fabLabDB)
       $ insertValues
@@ -198,7 +201,7 @@ insertProcessing typeCode materialCode maxPotency minPotency speed descr =
     let pType = Prelude.head types :: Type
         material = Prelude.head materials :: Material
         code = materialCode ++ (show maxPotency) ++ (show minPotency) ++ (show speed) ++ typeCode
-     in runBeam putStrLn conn
+     in runBeam conn
           $ runInsert
           $ insert (_lavorazioni fabLabDB)
           $ insertValues
@@ -217,14 +220,24 @@ insertProcessing typeCode materialCode maxPotency minPotency speed descr =
 selectPlasticFromCode :: String -> (Connection -> IO [Plastic])
 selectPlasticFromCode code =
   \conn ->
-    runBeam putStrLn conn
+    runBeam conn
       $ runSelectReturningList
       $ select
       $ filter_ (\p -> _plasticCodicePlastica p ==. (val_ (pack code))) allPlastics
 
 -- |Add a type of plastic to the database
 insertPlastic :: String -> String -> String -> (Connection -> IO ())
-insertPlastic code name descr = undefined
+insertPlastic code name descr =
+  \conn ->
+    runBeam conn
+      $ runInsert
+      $ insert (_plastiche fabLabDB)
+      $ insertValues
+          [ Plastic
+              (pack code)
+              (pack name)
+              (pack descr)
+            ]
 
 -- |Add a filament to the database. The code is the id of the filament inside the type of plastic
 insertFilament :: String -> String -> String -> String -> (Connection -> IO ())
@@ -232,7 +245,7 @@ insertFilament code plasticCode brand color =
   \conn -> do
     plastics <- (selectPlasticFromCode plasticCode) conn
     let plastic = Prelude.head plastics :: Plastic
-     in runBeam putStrLn conn
+     in runBeam conn
           $ runInsert
           $ insert (_filamenti fabLabDB)
           $ insertValues
@@ -244,18 +257,35 @@ insertFilament code plasticCode brand color =
                 ]
 
 -- printers queries
+-- |Select all the printers with the given code (should be 0 or 1)
+selectPrinterFromCode :: String -> (Connection -> IO [Printer])
+selectPrinterFromCode code =
+  \conn ->
+    runBeam conn
+      $ runSelectReturningList
+      $ select
+      $ filter_ (\p -> _printerCodiceStampante p ==. (val_ (pack code))) allPrinters
+
 -- |Add a printer to the database
 insertPrinter :: String -> String -> String -> String -> (Connection -> IO ())
 insertPrinter code brand model descr =
   \conn -> do
-    runBeam putStrLn conn
+    runBeam conn
       $ runInsert
       $ insert (_stampanti fabLabDB)
       $ insertValues [Printer (pack code) (pack brand) (pack model) (pack descr)]
 
 -- |Assign a printer to a print
 assignPrinter :: String -> Int -> (Connection -> IO ())
-assignPrinter printer print = undefined
+assignPrinter printerCode print =
+  \conn -> do
+    printers <- (selectPrinterFromCode printerCode) conn
+    let printer = Prelude.head printers
+     in runBeam conn
+          $ runUpdate
+          $ update (_stampe fabLabDB)
+              (\s -> _printCodiceStampante s <-. just_ (val_ (pk printer)))
+              (\s -> _printCodiceStampa s ==. (val_ print))
 
 -- prints queries
 -- |Add a new print to the database
@@ -264,7 +294,7 @@ insertPrint cf date descr =
   \conn -> do
     people <- (selectPersonFromCF cf) conn
     let person = Prelude.head people :: Person
-     in runBeam putStrLn conn
+     in runBeam conn
           $ runInsert
           $ insert (_stampe fabLabDB)
           $ insertExpressions
@@ -284,11 +314,32 @@ insertPrint cf date descr =
 
 -- |Assign a print to an operator
 assignPrint :: Int -> String -> (Connection -> IO ())
-assignPrint code cf = undefined
+assignPrint code cf =
+  \conn -> do
+    operators <- (selectPersonFromCF cf) conn
+    let operator = Prelude.head operators
+     in runBeam conn
+          $ runUpdate
+          $ update (_stampe fabLabDB)
+              (\s -> _printCfIncaricato s <-. just_ (val_ (pk operator)))
+              (\s -> _printCodiceStampa s ==. val_ code)
 
 -- |Complete a print
-completePrint :: Day -> Double -> Scientific -> Scientific -> (Connection -> IO ())
-completePrint date time total materials = undefined
+completePrint :: Int -> Day -> Double -> Scientific -> Scientific -> (Connection -> IO ())
+completePrint print date time total materials =
+  \conn ->
+    runBeam conn
+      $ runUpdate
+      $ update (_stampe fabLabDB)
+          ( \s ->
+              mconcat
+                [ _printDataConsegna s <-. val_ (Just date),
+                  _printCostoMateriali s <-. val_ (Just materials),
+                  _printCostoTotale s <-. val_ (Just total),
+                  _printTempo s <-. val_ (Just time)
+                  ]
+            )
+          (\s -> _printCodiceStampa s ==. val_ print)
 
 -- cuts queries
 -- |Add a new cut to the database
@@ -297,7 +348,7 @@ insertCut cf date descr =
   \conn -> do
     people <- selectPersonFromCF cf conn
     let person = Prelude.head people :: Person
-     in runBeam putStrLn conn
+     in runBeam conn
           $ runInsert
           $ insert (_intagli fabLabDB)
           $ insertExpressions
@@ -316,8 +367,29 @@ insertCut cf date descr =
 
 -- |Assign a cut to an operator
 assignCut :: Int -> String -> (Connection -> IO ())
-assignCut code cf = undefined
+assignCut code cf =
+  \conn -> do
+    operators <- (selectPersonFromCF cf) conn
+    let operator = Prelude.head operators
+     in runBeam conn
+          $ runUpdate
+          $ update (_intagli fabLabDB)
+              (\c -> _cutCfIncaricato c <-. just_ (val_ (pk operator)))
+              (\c -> _cutCodiceIntaglio c ==. val_ code)
 
 -- |Complete a cut
-completeCut :: Day -> Double -> Scientific -> Scientific -> (Connection -> IO ())
-completeCut date time total materials = undefined
+completeCut :: Int -> Day -> Double -> Scientific -> Scientific -> (Connection -> IO ())
+completeCut code date time total materials =
+  \conn ->
+    runBeam conn
+      $ runUpdate
+      $ update (_intagli fabLabDB)
+          ( \c ->
+              mconcat
+                [ _cutDataConsegna c <-. val_ (Just date),
+                  _cutCostoTotale c <-. val_ (Just total),
+                  _cutCostoMateriali c <-. val_ (Just materials),
+                  _cutTempo c <-. val_ (Just time)
+                  ]
+            )
+          (\c -> _cutCodiceIntaglio c ==. val_ code)

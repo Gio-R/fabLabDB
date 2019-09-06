@@ -24,11 +24,8 @@ import Database.Beam.Postgres
 import Database.Beam.Schema.Tables
 
 -- costants
-uri :: ByteString
+uri :: String
 uri = "postgres://postgres:14102002@localhost/FabLab"
-
-connection :: IO Connection
-connection = connectPostgreSQL uri
 
 -- datatypes
 -- |Data representing a person in the database
