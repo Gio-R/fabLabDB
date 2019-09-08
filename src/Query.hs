@@ -14,7 +14,6 @@
 -- |Module used for the queries in the database
 module Query where
 
-import Data.ByteString (ByteString)
 import Data.ByteString.UTF8 (fromString)
 import Data.Int (Int)
 import Data.Scientific
@@ -23,7 +22,6 @@ import Data.Time.Calendar
 import Database.Beam
 import Database.Beam.Backend.SQL (BeamSqlBackend)
 import Database.Beam.Postgres
-import Database.Beam.Query
 import Schema
 
 -- constants and general functions
@@ -47,10 +45,20 @@ allElementsOfTable
 allElementsOfTable table = all_ (table fabLabDB)
 
 -- |A generic select with filters
--- | table :: Table t => ( DatabaseSettings be FabLabDB -> DatabaseEntity be FabLabDB (TableEntity t))
--- | filter :: Table t => (t (QExpr be s)) -> QExpr be s Bool
-genericSelect table filter =
-  let pool = case filter of
+{-genericSelect :: (Table t, Generic (t Identity),
+                        Generic (t Database.Beam.Backend.Types.Exposed),
+                        Database.Beam.Backend.SQL.Row.GFromBackendRow
+                          Postgres
+                          (GHC.Generics.Rep (t Database.Beam.Backend.Types.Exposed))
+                          (GHC.Generics.Rep (t Identity))) =>
+                       (DatabaseSettings Postgres FabLabDB
+                        -> DatabaseEntity Postgres FabLabDB (TableEntity t))
+                       -> Maybe
+                            (t (QExpr Postgres QBaseScope) -> QExpr Postgres QBaseScope Bool)
+                       -> Connection
+                       -> IO [t Identity]-}
+genericSelect table maybeFilter =
+  let pool = case maybeFilter of
         Nothing -> allElementsOfTable table
         Just f -> filter_ f $ allElementsOfTable table
    in \conn ->
@@ -339,7 +347,7 @@ insertPrinter code brand model descr =
 
 -- |Assign a printer to a print
 assignPrinter :: String -> Int -> (Connection -> IO ())
-assignPrinter printerCode print =
+assignPrinter printerCode printCode =
   \conn -> do
     printers <- (selectPrinterFromCode printerCode) conn
     let printer = Prelude.head printers
@@ -347,7 +355,7 @@ assignPrinter printerCode print =
           $ runUpdate
           $ update (_stampe fabLabDB)
               (\s -> _printCodiceStampante s <-. just_ (val_ (pk printer)))
-              (\s -> _printCodiceStampa s ==. (val_ print))
+              (\s -> _printCodiceStampa s ==. (val_ printCode))
 
 -- prints queries
 -- |Select the print with the given code in the database (should be 0 or 1)
@@ -371,7 +379,7 @@ selectAllCompletePrints =
 
 -- |Add a new print to the database
 insertPrint :: String -> Day -> String -> (Connection -> IO ())
-insertPrint cf date descr =
+insertPrint cf insertDate descr =
   \conn -> do
     people <- (selectPersonFromCF cf) conn
     let person = Prelude.head people :: Person
@@ -381,7 +389,7 @@ insertPrint cf date descr =
           $ insertExpressions
               [ Print
                   { _printCodiceStampa = default_,
-                    _printDataRichiesta = val_ date,
+                    _printDataRichiesta = val_ insertDate,
                     _printDataConsegna = val_ Nothing,
                     _printTempo = val_ Nothing,
                     _printCostoMateriali = val_ Nothing,
@@ -412,33 +420,33 @@ assignFilament pCode fCode =
     filaments <- (selectFilamentFromCode fCode) conn
     prints <- (selectPrintFromCode pCode) conn
     let filament = Prelude.head filaments
-        print = Prelude.head prints
+        selectedPrint = Prelude.head prints
      in runBeam conn
           $ runInsert
           $ insert (_usi fabLabDB)
           $ insertExpressions
               [ Use
                   { _useCodiceFilamento = val_ (pk filament),
-                    _useCodiceStampa = val_ (pk print)
+                    _useCodiceStampa = val_ (pk selectedPrint)
                     }
                 ]
 
 -- |Complete a print
 completePrint :: Int -> Day -> Double -> Scientific -> Scientific -> (Connection -> IO ())
-completePrint print date time total materials =
+completePrint pCode deliveryDate workTime total materials =
   \conn ->
     runBeam conn
       $ runUpdate
       $ update (_stampe fabLabDB)
           ( \s ->
               mconcat
-                [ _printDataConsegna s <-. val_ (Just date),
+                [ _printDataConsegna s <-. val_ (Just deliveryDate),
                   _printCostoMateriali s <-. val_ (Just materials),
                   _printCostoTotale s <-. val_ (Just total),
-                  _printTempo s <-. val_ (Just time)
+                  _printTempo s <-. val_ (Just workTime)
                   ]
             )
-          (\s -> _printCodiceStampa s ==. val_ print)
+          (\s -> _printCodiceStampa s ==. val_ pCode)
 
 -- cuts queries
 -- |Select the cut with the given code in the database (should be 0 or 1)
@@ -462,7 +470,7 @@ selectAllCompleteCuts =
 
 -- |Add a new cut to the database
 insertCut :: String -> Day -> String -> (Connection -> IO ())
-insertCut cf date descr =
+insertCut cf insertDate descr =
   \conn -> do
     people <- selectPersonFromCF cf conn
     let person = Prelude.head people :: Person
@@ -472,7 +480,7 @@ insertCut cf date descr =
           $ insertExpressions
               [ Cut
                   { _cutCodiceIntaglio = default_,
-                    _cutDataRichiesta = val_ date,
+                    _cutDataRichiesta = val_ insertDate,
                     _cutDataConsegna = val_ Nothing,
                     _cutTempo = val_ Nothing,
                     _cutCostoMateriali = val_ Nothing,
@@ -515,17 +523,17 @@ assignProcessing cCode pCode =
 
 -- |Complete a cut
 completeCut :: Int -> Day -> Double -> Scientific -> Scientific -> (Connection -> IO ())
-completeCut code date time total materials =
+completeCut code deliveryDate workTime total materials =
   \conn ->
     runBeam conn
       $ runUpdate
       $ update (_intagli fabLabDB)
           ( \c ->
               mconcat
-                [ _cutDataConsegna c <-. val_ (Just date),
+                [ _cutDataConsegna c <-. val_ (Just deliveryDate),
                   _cutCostoTotale c <-. val_ (Just total),
                   _cutCostoMateriali c <-. val_ (Just materials),
-                  _cutTempo c <-. val_ (Just time)
+                  _cutTempo c <-. val_ (Just workTime)
                   ]
             )
           (\c -> _cutCodiceIntaglio c ==. val_ code)

@@ -13,15 +13,11 @@
 -- |Module used for defining the database schema
 module Schema where
 
-import Data.ByteString (ByteString)
-import Data.ByteString.UTF8 (fromString)
 import Data.Int (Int)
 import Data.Scientific
 import Data.Text
 import Data.Time.Calendar
 import Database.Beam
-import Database.Beam.Postgres
-import Database.Beam.Schema.Tables
 
 -- datatypes
 -- |Data representing a person in the database
