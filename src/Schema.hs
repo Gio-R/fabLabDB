@@ -412,5 +412,33 @@ fabLabDB =
             tableModification
               { _cutCfRichiedente = PersonId (fieldNamed "cf_richiedente"),
                 _cutCfIncaricato = PersonId (fieldNamed "cf_incaricato")
+                },
+        _materiali =
+          modifyTableFields
+            tableModification
+              { _materialCodiceClasse = MaterialsClassId (fieldNamed "codice_classe")
+                },
+        _filamenti =
+          modifyTableFields
+            tableModification
+              { _filamentCodicePlastica = PlasticId (fieldNamed "codice_plastica")
+                },
+        _lavorazioni =
+          modifyTableFields
+            tableModification
+              { _processingCodiceTipo = TypeId (fieldNamed "codice_tipo"),
+                _processingCodiceMateriale = MaterialId (fieldNamed "codice_materiale")
+                },
+        _composizioni =
+          modifyTableFields
+            tableModification
+              { _compositionCodiceIntaglio = CutId (fieldNamed "codice_intaglio"),
+                _compositionCodiceLavorazione = ProcessingId (fieldNamed "codice_lavorazione")
+                },
+        _usi =
+          modifyTableFields
+            tableModification
+              { _useCodiceFilamento = FilamentId (fieldNamed "codice_filamento"),
+                _useCodiceStampa = PrintId (fieldNamed "codice_stampa")
                 }
         }
