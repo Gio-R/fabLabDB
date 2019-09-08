@@ -49,12 +49,14 @@ allElementsOfTable table = all_ (table fabLabDB)
 -- |A generic select with filters
 -- | table :: Table t => ( DatabaseSettings be FabLabDB -> DatabaseEntity be FabLabDB (TableEntity t))
 -- | filter :: Table t => (t (QExpr be s)) -> QExpr be s Bool
-selectWithFilters table filter = 
-  \conn ->
-    runBeam conn
-    $ runSelectReturningList
-    $ select
-    $ filter_ filter $ allElementsOfTable table
+genericSelect table filter =
+  let pool = case filter of
+        Nothing -> allElementsOfTable table
+        Just f -> filter_ f $ allElementsOfTable table
+   in \conn ->
+        runBeam conn
+          $ runSelectReturningList
+          $ select pool
 
 -- |Prepares a code to be used as key
 prepareCode :: String -> Text
@@ -67,35 +69,22 @@ prepareName = toTitle . pack
 -- people queries
 -- |Select all people in the database
 selectAllPeople :: Connection -> IO [Person]
-selectAllPeople conn =
-  runBeam conn
-    $ runSelectReturningList
-    $ select $ allElementsOfTable _persone
+selectAllPeople = genericSelect _persone Nothing
 
 -- |Select all laser cutter operators in the database
 selectAllLaserCutterOperators :: Connection -> IO [Person]
-selectAllLaserCutterOperators conn =
-  runBeam conn
-    $ runSelectReturningList
-    $ select
-    $ filter_ (\p -> _personOperatoreIntagliatrice p ==. (val_ True)) $ allElementsOfTable _persone
+selectAllLaserCutterOperators =
+  genericSelect _persone $ Just (\p -> _personOperatoreIntagliatrice p ==. (val_ True))
 
 -- |Select all 3D printer operators in the database
 selectAllPrinterOperators :: Connection -> IO [Person]
-selectAllPrinterOperators conn =
-  runBeam conn
-    $ runSelectReturningList
-    $ select
-    $ filter_ (\p -> _personOperatoreStampante p ==. (val_ True)) $ allElementsOfTable _persone
+selectAllPrinterOperators =
+  genericSelect _persone $ Just (\p -> _personOperatoreStampante p ==. (val_ True))
 
 -- |Select all people with the given cf (should be 0 or 1) in the database
 selectPersonFromCF :: String -> (Connection -> IO [Person])
 selectPersonFromCF cf =
-  \conn ->
-    runBeam conn
-      $ runSelectReturningList
-      $ select
-      $ filter_ (\p -> _personCf p ==. (val_ (pack cf))) $ allElementsOfTable _persone
+  genericSelect _persone $ Just (\p -> _personCf p ==. (val_ (pack cf)))
 
 -- |Add a person to the database
 insertPerson :: String -> String -> String -> (Connection -> IO ())
@@ -134,37 +123,21 @@ modifyPerson cf partner cutter printer =
 -- materials queries
 -- |Select all materials in the database
 selectAllMaterials :: Connection -> IO [Material]
-selectAllMaterials =
-  \conn ->
-    runBeam conn
-      $ runSelectReturningList
-      $ select $ allElementsOfTable _materiali
+selectAllMaterials = genericSelect _materiali Nothing
 
 -- |Select all classes of materials in the database
 selectAllMaterialsClasses :: Connection -> IO [MaterialsClass]
-selectAllMaterialsClasses =
-  \conn ->
-    runBeam conn
-      $ runSelectReturningList
-      $ select $ allElementsOfTable _classi_di_materiali
+selectAllMaterialsClasses = genericSelect _classi_di_materiali Nothing
 
 -- |Select all the materials classes with the given code (should be 1 or 0) in the database
 selectMaterialsClassFromCode :: String -> (Connection -> IO [MaterialsClass])
 selectMaterialsClassFromCode code =
-  \conn ->
-    runBeam conn
-      $ runSelectReturningList
-      $ select
-      $ filter_ (\c -> _materialsclassCodiceClasse c ==. (val_ (prepareCode code))) $ allElementsOfTable _classi_di_materiali
+  genericSelect _classi_di_materiali $ Just (\c -> _materialsclassCodiceClasse c ==. (val_ (prepareCode code)))
 
 -- |Select all materials with the given code (should be 1 or 0) in the database
 selectMaterialFromCode :: String -> (Connection -> IO [Material])
 selectMaterialFromCode code =
-  \conn ->
-    runBeam conn
-      $ runSelectReturningList
-      $ select
-      $ filter_ (\m -> _materialCodiceMateriale m ==. (val_ (prepareCode code))) $ allElementsOfTable _materiali
+  genericSelect _materiali $ Just (\m -> _materialCodiceMateriale m ==. (val_ (prepareCode code)))
 
 -- |Select all materials of a given class in the database
 selectMaterialsByClass :: String -> (Connection -> IO [Material])
@@ -175,7 +148,8 @@ selectMaterialsByClass classCode =
      in runBeam conn
           $ runSelectReturningList
           $ select
-          $ filter_ (\m -> _materialCodiceClasse m ==. val_ (pk mClass)) $ allElementsOfTable _materiali
+          $ filter_ (\m -> _materialCodiceClasse m ==. val_ (pk mClass))
+          $ allElementsOfTable _materiali
 
 -- |Add a class of materials to the database in the database
 insertMaterialsClass :: String -> String -> (Connection -> IO ())
@@ -209,31 +183,23 @@ insertMaterial code classCode name width descr =
                 ]
 
 -- processings queries
+-- |Select the processing with the given code in the database
+selectProcessingFromCode :: String -> (Connection -> IO [Processing])
+selectProcessingFromCode pCode =
+  genericSelect _lavorazioni $ Just (\p -> _processingCodiceLavorazione p ==. val_ (prepareCode pCode))
+
 -- |Select all processings in the database
 selectAllProcessings :: Connection -> IO [Processing]
-selectAllProcessings =
-  \conn ->
-    runBeam conn
-      $ runSelectReturningList
-      $ select $ allElementsOfTable _lavorazioni
+selectAllProcessings = genericSelect _lavorazioni Nothing
 
 -- |Select all types of processing in the database
 selectAllTypes :: Connection -> IO [Type]
-selectAllTypes =
-  \conn ->
-    runBeam conn
-      $ runSelectReturningList
-      $ select $ allElementsOfTable _tipi
+selectAllTypes = genericSelect _tipi Nothing
 
 -- |Select all types of processing with the given code (should be 1 or 0) in the database
 selectTypeFromCode :: String -> (Connection -> IO [Type])
 selectTypeFromCode code =
-  \conn ->
-    let
-     in runBeam conn
-          $ runSelectReturningList
-          $ select
-          $ filter_ (\t -> _typeCodiceTipo t ==. (val_ (prepareCode code))) $ allElementsOfTable _tipi
+  genericSelect _tipi $ Just (\t -> _typeCodiceTipo t ==. (val_ (prepareCode code)))
 
 -- |Select all processings on a given material in the database
 selectProcessingsByMaterials :: String -> (Connection -> IO [Processing])
@@ -244,7 +210,8 @@ selectProcessingsByMaterials mCode =
      in runBeam conn
           $ runSelectReturningList
           $ select
-          $ filter_ (\p -> _processingCodiceMateriale p ==. val_ (pk material)) $ allElementsOfTable _lavorazioni
+          $ filter_ (\p -> _processingCodiceMateriale p ==. val_ (pk material))
+          $ allElementsOfTable _lavorazioni
 
 -- |Add a type of processing to the database
 insertType :: String -> String -> String -> (Connection -> IO ())
@@ -286,28 +253,21 @@ insertProcessing typeCode materialCode maxPotency minPotency speed descr =
 -- plastics and filaments queries
 -- |Select all filaments in the database
 selectAllFilaments :: Connection -> IO [Filament]
-selectAllFilaments =
-  \conn ->
-    runBeam conn
-      $ runSelectReturningList
-      $ select $ allElementsOfTable _filamenti
+selectAllFilaments = genericSelect _filamenti Nothing
 
 -- |Select all plastics in the database
 selectAllPlastics :: Connection -> IO [Plastic]
-selectAllPlastics =
-  \conn ->
-    runBeam conn
-      $ runSelectReturningList
-      $ select $ allElementsOfTable _plastiche
+selectAllPlastics = genericSelect _plastiche Nothing
 
 -- |Select all the plastics with the given code (should be 1 or 0) in the database
 selectPlasticFromCode :: String -> (Connection -> IO [Plastic])
 selectPlasticFromCode code =
-  \conn ->
-    runBeam conn
-      $ runSelectReturningList
-      $ select
-      $ filter_ (\p -> _plasticCodicePlastica p ==. (val_ (prepareCode code))) $ allElementsOfTable _plastiche
+  genericSelect _plastiche $ Just (\p -> _plasticCodicePlastica p ==. (val_ (prepareCode code)))
+
+-- |Select all the filaments with the given code (should be 1 or 0) in the database
+selectFilamentFromCode :: String -> (Connection -> IO [Filament])
+selectFilamentFromCode code =
+  genericSelect _filamenti $ Just (\f -> _filamentCodiceFilamento f ==. (val_ (prepareCode code)))
 
 -- |Select the filaments made of a given plastic in the database
 selectFilamentsByPlastic :: String -> (Connection -> IO [Filament])
@@ -318,7 +278,8 @@ selectFilamentsByPlastic pCode =
      in runBeam conn
           $ runSelectReturningList
           $ select
-          $ filter_ (\f -> _filamentCodicePlastica f ==. val_ (pk plastic)) $ allElementsOfTable _filamenti
+          $ filter_ (\f -> _filamentCodicePlastica f ==. val_ (pk plastic))
+          $ allElementsOfTable _filamenti
 
 -- |Add a type of plastic to the database
 insertPlastic :: String -> String -> String -> (Connection -> IO ())
@@ -354,20 +315,12 @@ insertFilament code plasticCode brand color =
 -- printers queries
 -- |Select all printers in the database
 selectAllPrinters :: Connection -> IO [Printer]
-selectAllPrinters =
-  \conn ->
-    runBeam conn
-      $ runSelectReturningList
-      $ select $ allElementsOfTable _stampanti
+selectAllPrinters = genericSelect _stampanti Nothing
 
 -- |Select all the printers with the given code (should be 0 or 1) in the database
 selectPrinterFromCode :: String -> (Connection -> IO [Printer])
 selectPrinterFromCode code =
-  \conn ->
-    runBeam conn
-      $ runSelectReturningList
-      $ select
-      $ filter_ (\p -> _printerCodiceStampante p ==. (val_ (prepareCode code))) $ allElementsOfTable _stampanti
+  genericSelect _stampanti $ Just (\p -> _printerCodiceStampante p ==. (val_ (prepareCode code)))
 
 -- |Add a printer to the database
 insertPrinter :: String -> String -> String -> String -> (Connection -> IO ())
@@ -397,31 +350,24 @@ assignPrinter printerCode print =
               (\s -> _printCodiceStampa s ==. (val_ print))
 
 -- prints queries
+-- |Select the print with the given code in the database (should be 0 or 1)
+selectPrintFromCode :: Int -> (Connection -> IO [Print])
+selectPrintFromCode pCode =
+  genericSelect _stampe $ Just (\p -> _printCodiceStampa p ==. val_ pCode)
+
 -- |Select all prints in the database
 selectAllPrints :: Connection -> IO [Print]
-selectAllPrints =
-  \conn ->
-    runBeam conn
-      $ runSelectReturningList
-      $ select $ allElementsOfTable _stampe
+selectAllPrints = genericSelect _stampe Nothing
 
 -- |Select all the print that aren't completed in the database
 selectAllIncompletePrints :: Connection -> IO [Print]
 selectAllIncompletePrints =
-  \conn ->
-    runBeam conn
-      $ runSelectReturningList
-      $ select
-      $ filter_ (\p -> _printDataConsegna p ==. val_ Nothing) $ allElementsOfTable _stampe
+  genericSelect _stampe $ Just (\p -> _printDataConsegna p ==. val_ Nothing)
 
 -- |Select all the completed prints in the database
 selectAllCompletePrints :: Connection -> IO [Print]
 selectAllCompletePrints =
-  \conn ->
-    runBeam conn
-      $ runSelectReturningList
-      $ select
-      $ filter_ (\p -> _printDataConsegna p /=. val_ Nothing) $ allElementsOfTable _stampe
+  genericSelect _stampe $ Just (\p -> _printDataConsegna p /=. val_ Nothing)
 
 -- |Add a new print to the database
 insertPrint :: String -> Day -> String -> (Connection -> IO ())
@@ -459,6 +405,24 @@ assignPrint code cf =
               (\s -> _printCfIncaricato s <-. just_ (val_ (pk operator)))
               (\s -> _printCodiceStampa s ==. val_ code)
 
+-- |Assign a filament to a print in the database
+assignFilament :: Int -> String -> (Connection -> IO ())
+assignFilament pCode fCode =
+  \conn -> do
+    filaments <- (selectFilamentFromCode fCode) conn
+    prints <- (selectPrintFromCode pCode) conn
+    let filament = Prelude.head filaments
+        print = Prelude.head prints
+     in runBeam conn
+          $ runInsert
+          $ insert (_usi fabLabDB)
+          $ insertExpressions
+              [ Use
+                  { _useCodiceFilamento = val_ (pk filament),
+                    _useCodiceStampa = val_ (pk print)
+                    }
+                ]
+
 -- |Complete a print
 completePrint :: Int -> Day -> Double -> Scientific -> Scientific -> (Connection -> IO ())
 completePrint print date time total materials =
@@ -477,31 +441,24 @@ completePrint print date time total materials =
           (\s -> _printCodiceStampa s ==. val_ print)
 
 -- cuts queries
+-- |Select the cut with the given code in the database (should be 0 or 1)
+selectCutFromCode :: Int -> (Connection -> IO [Cut])
+selectCutFromCode cCode =
+  genericSelect _intagli $ Just (\c -> _cutCodiceIntaglio c ==. val_ cCode)
+
 -- |Select all cuts in the database
 selectAllCuts :: Connection -> IO [Cut]
-selectAllCuts =
-  \conn ->
-    runBeam conn
-      $ runSelectReturningList
-      $ select $ allElementsOfTable _intagli
+selectAllCuts = genericSelect _intagli Nothing
 
 -- |Select all the print that aren't completed in the database
 selectAllIncompleteCuts :: Connection -> IO [Cut]
 selectAllIncompleteCuts =
-  \conn ->
-    runBeam conn
-      $ runSelectReturningList
-      $ select
-      $ filter_ (\c -> _cutDataConsegna c ==. val_ Nothing) $ allElementsOfTable _intagli
+  genericSelect _intagli $ Just (\c -> _cutDataConsegna c ==. val_ Nothing)
 
 -- |Select all the completed prints in the database
 selectAllCompleteCuts :: Connection -> IO [Cut]
 selectAllCompleteCuts =
-  \conn ->
-    runBeam conn
-      $ runSelectReturningList
-      $ select
-      $ filter_ (\c -> _cutDataConsegna c /=. val_ Nothing) $ allElementsOfTable _intagli
+  genericSelect _intagli $ Just (\c -> _cutDataConsegna c /=. val_ Nothing)
 
 -- |Add a new cut to the database
 insertCut :: String -> Day -> String -> (Connection -> IO ())
@@ -537,6 +494,24 @@ assignCut code cf =
           $ update (_intagli fabLabDB)
               (\c -> _cutCfIncaricato c <-. just_ (val_ (pk operator)))
               (\c -> _cutCodiceIntaglio c ==. val_ code)
+
+-- |Assign a processing to a print
+assignProcessing :: Int -> String -> (Connection -> IO ())
+assignProcessing cCode pCode =
+  \conn -> do
+    processings <- (selectProcessingFromCode pCode) conn
+    cuts <- (selectCutFromCode cCode) conn
+    let processing = Prelude.head processings
+        cut = Prelude.head cuts
+     in runBeam conn
+          $ runInsert
+          $ insert (_composizioni fabLabDB)
+          $ insertExpressions
+              [ Composition
+                  { _compositionCodiceLavorazione = val_ (pk processing),
+                    _compositionCodiceIntaglio = val_ (pk cut)
+                    }
+                ]
 
 -- |Complete a cut
 completeCut :: Int -> Day -> Double -> Scientific -> Scientific -> (Connection -> IO ())
