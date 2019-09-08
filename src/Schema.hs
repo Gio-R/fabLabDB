@@ -23,10 +23,6 @@ import Database.Beam
 import Database.Beam.Postgres
 import Database.Beam.Schema.Tables
 
--- costants
-createUri :: String -> String -> String
-createUri user pswd = "postgres://" ++ user ++ ":" ++ pswd ++ "@localhost/FabLab"
-
 -- datatypes
 -- |Data representing a person in the database
 data PersonT f
