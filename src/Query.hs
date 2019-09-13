@@ -15,7 +15,7 @@
 module Query where
 
 import Control.Exception
-import Data.ByteString.UTF8 (toString, fromString)
+import Data.ByteString.UTF8 (fromString, toString)
 import Data.Int (Int)
 import Data.Scientific
 import Data.Text
@@ -66,8 +66,9 @@ genericSelect table maybeFilter =
   let pool = case maybeFilter of
         Nothing -> allElementsOfTable table
         Just f -> filter_ f $ allElementsOfTable table
-   in \conn -> try $
-        runBeam conn
+   in \conn ->
+        try
+          $ runBeam conn
           $ runSelectReturningList
           $ select pool
 
@@ -102,8 +103,9 @@ selectPersonFromCF cf =
 -- |Add a person to the database
 insertPerson :: String -> String -> String -> (Connection -> IO (Either SqlError ()))
 insertPerson cf name surname =
-  \conn -> try $
-    runBeam conn
+  \conn ->
+    try
+      $ runBeam conn
       $ runInsert
       $ insert (_persone fabLabDB)
       $ insertValues
@@ -120,8 +122,9 @@ insertPerson cf name surname =
 -- |Modify a person already in the database
 modifyPerson :: String -> Bool -> Bool -> Bool -> (Connection -> IO (Either SqlError ()))
 modifyPerson cf partner cutter printer =
-  \conn -> try $
-    runBeam conn
+  \conn ->
+    try
+      $ runBeam conn
       $ runUpdate
       $ update (_persone fabLabDB)
           ( \p ->
@@ -161,7 +164,7 @@ selectMaterialsByClass classCode =
       Left ex -> pure $ Left ex
       Right classes ->
         let mClass = Prelude.head classes
-          in try $ runBeam conn
+         in try $ runBeam conn
               $ runSelectReturningList
               $ select
               $ filter_ (\m -> _materialCodiceClasse m ==. val_ (pk mClass))
@@ -170,8 +173,9 @@ selectMaterialsByClass classCode =
 -- |Add a class of materials to the database in the database
 insertMaterialsClass :: String -> String -> (Connection -> IO (Either SqlError ()))
 insertMaterialsClass code name =
-  \conn -> try $
-    runBeam conn
+  \conn ->
+    try
+      $ runBeam conn
       $ runInsert
       $ insert (_classi_di_materiali fabLabDB)
       $ insertValues
@@ -189,7 +193,7 @@ insertMaterial code classCode name width descr =
       Left ex -> pure $ Left ex
       Right classes ->
         let mClass = Prelude.head classes
-          in try $ runBeam conn
+         in try $ runBeam conn
               $ runInsert
               $ insert (_materiali fabLabDB)
               $ insertValues
@@ -227,9 +231,9 @@ selectProcessingsByMaterials mCode =
     selectedMaterials <- (selectMaterialFromCode mCode) conn
     case selectedMaterials of
       Left ex -> pure $ Left ex
-      Right materials -> 
+      Right materials ->
         let material = Prelude.head materials
-          in try $ runBeam conn
+         in try $ runBeam conn
               $ runSelectReturningList
               $ select
               $ filter_ (\p -> _processingCodiceMateriale p ==. val_ (pk material))
@@ -238,8 +242,9 @@ selectProcessingsByMaterials mCode =
 -- |Add a type of processing to the database
 insertType :: String -> String -> String -> (Connection -> IO (Either SqlError ()))
 insertType code name descr =
-  \conn -> try $
-    runBeam conn
+  \conn ->
+    try
+      $ runBeam conn
       $ runInsert
       $ insert (_tipi fabLabDB)
       $ insertValues
@@ -260,22 +265,22 @@ insertProcessing typeCode materialCode maxPotency minPotency speed descr =
       (Left ex, _) -> pure $ Left ex
       (_, Left ex) -> pure $ Left ex
       (Right types, Right materials) ->
-          let pType = Prelude.head types :: Type
-              material = Prelude.head materials :: Material
-              code = materialCode ++ (show maxPotency) ++ (show minPotency) ++ (show speed) ++ typeCode
-            in try $ runBeam conn
-                $ runInsert
-                $ insert (_lavorazioni fabLabDB)
-                $ insertValues
-                    [ Processing
-                        (pk pType)
-                        (prepareCode code)
-                        (pk material)
-                        maxPotency
-                        minPotency
-                        speed
-                        (pack descr)
-                      ]
+        let pType = Prelude.head types :: Type
+            material = Prelude.head materials :: Material
+            code = materialCode ++ (show maxPotency) ++ (show minPotency) ++ (show speed) ++ typeCode
+         in try $ runBeam conn
+              $ runInsert
+              $ insert (_lavorazioni fabLabDB)
+              $ insertValues
+                  [ Processing
+                      (pk pType)
+                      (prepareCode code)
+                      (pk material)
+                      maxPotency
+                      minPotency
+                      speed
+                      (pack descr)
+                    ]
 
 -- plastics and filaments queries
 -- |Select all filaments in the database
@@ -304,18 +309,19 @@ selectFilamentsByPlastic plasticCode =
     case selectedPlastics of
       Left ex -> pure $ Left ex
       Right plastics ->
-          let plastic = Prelude.head plastics :: Plastic
-            in try $ runBeam conn
-                $ runSelectReturningList
-                $ select
+        let plastic = Prelude.head plastics :: Plastic
+         in try $ runBeam conn
+              $ runSelectReturningList
+              $ select
               $ filter_ (\f -> _filamentCodicePlastica f ==. val_ (pk plastic))
               $ allElementsOfTable _filamenti
 
 -- |Add a type of plastic to the database
 insertPlastic :: String -> String -> String -> (Connection -> IO (Either SqlError ()))
 insertPlastic code name descr =
-  \conn -> try $
-    runBeam conn
+  \conn ->
+    try
+      $ runBeam conn
       $ runInsert
       $ insert (_plastiche fabLabDB)
       $ insertValues
@@ -333,17 +339,17 @@ insertFilament code plasticCode brand color =
     case selectedPlastics of
       Left ex -> pure $ Left ex
       Right plastics ->
-          let plastic = Prelude.head plastics
-            in try $ runBeam conn
-                $ runInsert
-                $ insert (_filamenti fabLabDB)
-                $ insertValues
-                    [ Filament
-                        (prepareCode code)
-                        (pk plastic)
-                        (prepareName brand)
-                        (prepareName color)
-                      ]
+        let plastic = Prelude.head plastics
+         in try $ runBeam conn
+              $ runInsert
+              $ insert (_filamenti fabLabDB)
+              $ insertValues
+                  [ Filament
+                      (prepareCode code)
+                      (pk plastic)
+                      (prepareName brand)
+                      (prepareName color)
+                    ]
 
 -- printers queries
 -- |Select all printers in the database
@@ -358,8 +364,9 @@ selectPrinterFromCode code =
 -- |Add a printer to the database
 insertPrinter :: String -> String -> String -> String -> (Connection -> IO (Either SqlError ()))
 insertPrinter code brand model descr =
-  \conn -> try $ 
-    runBeam conn
+  \conn ->
+    try
+      $ runBeam conn
       $ runInsert
       $ insert (_stampanti fabLabDB)
       $ insertValues
@@ -379,7 +386,7 @@ assignPrinter printerCode printCode =
       Left ex -> pure $ Left ex
       Right printers ->
         let printer = Prelude.head printers
-          in try $ runBeam conn
+         in try $ runBeam conn
               $ runUpdate
               $ update (_stampe fabLabDB)
                   (\s -> _printCodiceStampante s <-. just_ (val_ (pk printer)))
@@ -414,7 +421,7 @@ insertPrint cf insertDate descr =
       Left ex -> pure $ Left ex
       Right people ->
         let person = Prelude.head people
-          in try $ runBeam conn
+         in try $ runBeam conn
               $ runInsert
               $ insert (_stampe fabLabDB)
               $ insertExpressions
@@ -439,9 +446,9 @@ assignPrint code cf =
     selectedOperators <- (selectPersonFromCF cf) conn
     case selectedOperators of
       Left ex -> pure $ Left ex
-      Right operators -> 
+      Right operators ->
         let operator = Prelude.head operators
-        in try $ runBeam conn
+         in try $ runBeam conn
               $ runUpdate
               $ update (_stampe fabLabDB)
                   (\s -> _printCfIncaricato s <-. just_ (val_ (pk operator)))
@@ -457,24 +464,25 @@ assignFilament pCode fCode =
       (Left ex, Left ex') -> pure $ Left $ (error $ (toString $ sqlErrorMsg ex) ++ (toString $ sqlErrorMsg ex'))
       (Left ex, _) -> pure $ Left ex
       (_, Left ex) -> pure $ Left ex
-      (Right filaments, Right prints) -> 
-              let filament = Prelude.head filaments
-                  selectedPrint = Prelude.head prints
-              in try $ runBeam conn
-                    $ runInsert
-                    $ insert (_usi fabLabDB)
-                    $ insertExpressions
-                        [ Use
-                            { _useCodiceFilamento = val_ (pk filament),
-                              _useCodiceStampa = val_ (pk selectedPrint)
-                              }
-                          ]
+      (Right filaments, Right prints) ->
+        let filament = Prelude.head filaments
+            selectedPrint = Prelude.head prints
+         in try $ runBeam conn
+              $ runInsert
+              $ insert (_usi fabLabDB)
+              $ insertExpressions
+                  [ Use
+                      { _useCodiceFilamento = val_ (pk filament),
+                        _useCodiceStampa = val_ (pk selectedPrint)
+                        }
+                    ]
 
 -- |Complete a print
 completePrint :: Int -> Day -> Double -> Scientific -> Scientific -> (Connection -> IO (Either SqlError ()))
 completePrint pCode deliveryDate workTime total materials =
-  \conn -> try $
-    runBeam conn
+  \conn ->
+    try
+      $ runBeam conn
       $ runUpdate
       $ update (_stampe fabLabDB)
           ( \s ->
@@ -514,24 +522,24 @@ insertCut cf insertDate descr =
     selectedPeople <- selectPersonFromCF cf conn
     case selectedPeople of
       Left ex -> pure $ Left ex
-      Right people -> 
-              let person = Prelude.head people
-              in try $ runBeam conn
-                    $ runInsert
-                    $ insert (_intagli fabLabDB)
-                    $ insertExpressions
-                        [ Cut
-                            { _cutCodiceIntaglio = default_,
-                              _cutDataRichiesta = val_ insertDate,
-                              _cutDataConsegna = val_ Nothing,
-                              _cutTempo = val_ Nothing,
-                              _cutCostoMateriali = val_ Nothing,
-                              _cutCostoTotale = val_ Nothing,
-                              _cutDescrizione = val_ (pack descr),
-                              _cutCfRichiedente = val_ (pk person),
-                              _cutCfIncaricato = nothing_
-                              }
-                          ]
+      Right people ->
+        let person = Prelude.head people
+         in try $ runBeam conn
+              $ runInsert
+              $ insert (_intagli fabLabDB)
+              $ insertExpressions
+                  [ Cut
+                      { _cutCodiceIntaglio = default_,
+                        _cutDataRichiesta = val_ insertDate,
+                        _cutDataConsegna = val_ Nothing,
+                        _cutTempo = val_ Nothing,
+                        _cutCostoMateriali = val_ Nothing,
+                        _cutCostoTotale = val_ Nothing,
+                        _cutDescrizione = val_ (pack descr),
+                        _cutCfRichiedente = val_ (pk person),
+                        _cutCfIncaricato = nothing_
+                        }
+                    ]
 
 -- |Assign a cut to an operator
 assignCut :: Int -> String -> (Connection -> IO (Either SqlError ()))
@@ -540,13 +548,13 @@ assignCut code cf =
     selectedOperators <- (selectPersonFromCF cf) conn
     case selectedOperators of
       Left ex -> pure $ Left ex
-      Right operators -> 
-                          let operator = Prelude.head operators
-                          in try $ runBeam conn
-                                $ runUpdate
-                                $ update (_intagli fabLabDB)
-                                    (\c -> _cutCfIncaricato c <-. just_ (val_ (pk operator)))
-                                    (\c -> _cutCodiceIntaglio c ==. val_ code)
+      Right operators ->
+        let operator = Prelude.head operators
+         in try $ runBeam conn
+              $ runUpdate
+              $ update (_intagli fabLabDB)
+                  (\c -> _cutCfIncaricato c <-. just_ (val_ (pk operator)))
+                  (\c -> _cutCodiceIntaglio c ==. val_ code)
 
 -- |Assign a processing to a print
 assignProcessing :: Int -> String -> (Connection -> IO (Either SqlError ()))
@@ -559,23 +567,24 @@ assignProcessing cCode pCode =
       (Left ex, _) -> pure $ Left ex
       (_, Left ex) -> pure $ Left ex
       (Right processings, Right cuts) -> do
-                                              let processing = Prelude.head processings
-                                                  cut = Prelude.head cuts
-                                                in try $ runBeam conn
-                                                    $ runInsert
-                                                    $ insert (_composizioni fabLabDB)
-                                                    $ insertExpressions
-                                                        [ Composition
-                                                            { _compositionCodiceLavorazione = val_ (pk processing),
-                                                              _compositionCodiceIntaglio = val_ (pk cut)
-                                                              }
-                                                          ]
+        let processing = Prelude.head processings
+            cut = Prelude.head cuts
+         in try $ runBeam conn
+              $ runInsert
+              $ insert (_composizioni fabLabDB)
+              $ insertExpressions
+                  [ Composition
+                      { _compositionCodiceLavorazione = val_ (pk processing),
+                        _compositionCodiceIntaglio = val_ (pk cut)
+                        }
+                    ]
 
 -- |Complete a cut
 completeCut :: Int -> Day -> Double -> Scientific -> Scientific -> (Connection -> IO (Either SqlError ()))
 completeCut code deliveryDate workTime total materials =
-  \conn -> try $
-    runBeam conn
+  \conn ->
+    try
+      $ runBeam conn
       $ runUpdate
       $ update (_intagli fabLabDB)
           ( \c ->
