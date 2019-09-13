@@ -26,13 +26,17 @@ import Database.Beam.Postgres
 import Schema
 
 -- constants and general functions
--- |Creates an uri for connecting to the database with the given username and password
+-- |Creates a standard uri for connecting to the database with the given username and password
 createUri :: String -> String -> String
 createUri user pswd = "postgres://" ++ user ++ ":" ++ pswd ++ "@localhost/FabLab"
 
 -- |Given an uri, returns a connection to the database
-connect :: String -> IO Connection
-connect uri = connectPostgreSQL $ fromString uri
+connectWithUri :: String -> IO Connection
+connectWithUri uri = connectPostgreSQL $ fromString uri
+
+-- |Connects to the database with the given characteristics
+connectWithInfo :: String -> Integer -> String -> String -> String -> IO Connection
+connectWithInfo host port user pswd db = connect $ ConnectInfo host (fromInteger port) user pswd db
 
 -- |Given a connection, close it
 closeConnection :: Connection -> IO ()
