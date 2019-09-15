@@ -31,16 +31,7 @@ import Web.Users.Types (SessionId, User, UserStorageBackend, getUserById, verify
 -- datatypes
 data IsGuest = IsGuest
 
--- app :: SpockM conn sess st ()
--- SpockM conn sess st = SpockCtxM () conn sess st
--- SpockCtxM ctx conn sess st = SpockCtxT ctx (WebStateM conn sess st)
-type SessionVal = Maybe Web.Users.Types.SessionId
-
-type Api ctx = SpockCtxM ctx Connection SessionVal () ()
-
-type ApiAction ctx a = SpockActionCtx ctx Connection SessionVal () a
-
--- utility functions and constants
+-- |Represents the information necessary to start the application
 data ApiCfg
   = ApiCfg
       { acfg_db :: Text,
@@ -51,6 +42,19 @@ data ApiCfg
         acfg_port :: Int,
         acfg_name :: Text
         }
+
+-- app :: SpockM conn sess st ()
+-- SpockM conn sess st = SpockCtxM () conn sess st
+-- SpockCtxM ctx conn sess st = SpockCtxT ctx (WebStateM conn sess st)
+type SessionVal = Maybe Web.Users.Types.SessionId
+
+type Api ctx = SpockCtxM ctx Connection SessionVal () ()
+
+type ApiAction ctx a = SpockActionCtx ctx Connection SessionVal () a
+
+-- utility functions and constants
+getClientFilePath :: String -> FilePath
+getClientFilePath fileName = "client/" ++ fileName
 
 -- |Parses the configuration file
 parseConfig :: FilePath -> IO ApiCfg
@@ -105,6 +109,9 @@ getUserFromSession =
     user <- MaybeT $ runQuery (`getUserById` uid)
     return user
 
+loginAction :: Text -> Text -> ApiAction ctx ()
+loginAction user pswd = undefined
+
 -- server functions
 runServer :: ApiCfg -> IO ()
 runServer cfg =
@@ -121,13 +128,14 @@ runServer cfg =
 app :: Api ()
 app = do
   prehook baseHook $ do
-    get "" $ do
-      -- sending main page with login form
-      -- here goes login
-      queryResult <- runQuery selectAllPeople
-      case queryResult of
-        Left ex -> errorJson 400 $ decodeUtf8 $ sqlErrorMsg ex
-        Right allPeople -> json allPeople
+    get root $ do
+      file "login form" $ getClientFilePath "login.html"
+    post "login" $ do
+      maybeUser <- param "username"
+      maybePswd <- param "password"
+      case (maybeUser, maybePswd) of
+        (Just user, Just pswd) -> loginAction user pswd
+        (_, _) -> errorJson 400 "Missing parameter"
     prehook authHook $ do
       -- here goes requests for pages and data
       get "materials" $ do
