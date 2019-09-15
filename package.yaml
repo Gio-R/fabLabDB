@@ -20,16 +20,22 @@ extra-source-files:
 description:         Please see the README on GitHub at <https://github.com/Gio-R/haskellDB#readme>
 
 dependencies:
+- aeson
 - base >= 4.7 && < 5
-- Spock >= 0.11
-- mtl
-- text
 - beam-core 
 - beam-postgres
 - bytestring
-- utf8-string
+- configurator
+- hvect
+- mtl
 - scientific
+- Spock >= 0.11
+- text
 - time
+- transformers
+- users
+- users-postgresql-simple
+- utf8-string
 
 library:
   source-dirs: src
