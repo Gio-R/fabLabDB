@@ -12,21 +12,22 @@
 module Server where
 
 import Control.Exception
-import Control.Monad.Trans.Maybe
 import Data.Aeson hiding (json)
 import qualified Data.Configurator as C
 import Data.HVect
+import Data.List as L (groupBy)
 import Data.Text
 import Data.Text.Encoding
+import Data.Time
 import Database.Beam
 import Database.Beam.Postgres (Connection, sqlErrorMsg)
 import GHC.Generics
-import Query
+import Network.Wai.Middleware.Static
+import Query as Q
 import Schema
+import Users as U
 import Web.Spock
 import Web.Spock.Config
-import Web.Users.Postgresql
-import Web.Users.Types (SessionId, User, UserStorageBackend, getUserById, verifySession)
 
 -- datatypes
 data IsGuest = IsGuest
@@ -46,7 +47,7 @@ data ApiCfg
 -- app :: SpockM conn sess st ()
 -- SpockM conn sess st = SpockCtxM () conn sess st
 -- SpockCtxM ctx conn sess st = SpockCtxT ctx (WebStateM conn sess st)
-type SessionVal = Maybe Web.Users.Types.SessionId
+type SessionVal = Maybe SessionID
 
 type Api ctx = SpockCtxM ctx Connection SessionVal () ()
 
@@ -55,6 +56,9 @@ type ApiAction ctx a = SpockActionCtx ctx Connection SessionVal () a
 -- utility functions and constants
 getClientFilePath :: String -> FilePath
 getClientFilePath fileName = "client/" ++ fileName
+
+getFileName :: String -> String
+getFileName partialUri = Prelude.last $ L.groupBy (\x y -> y /= '/') partialUri
 
 -- |Parses the configuration file
 parseConfig :: FilePath -> IO ApiCfg
@@ -70,12 +74,22 @@ parseConfig cfgFile = do
   return (ApiCfg db dbLocation dbPort dbUser dbPassword port name)
 
 -- |Function used to get the connection used to interrogate the database
-getConnection :: String -> Integer -> String -> String -> String -> PoolOrConn Connection
-getConnection host port user pswd name =
+getFabLabConnection
+  :: String -- ^ Host name
+  -> Integer -- ^ Port
+  -> String -- ^ Username
+  -> String -- ^ Password
+  -> String -- ^ Name of the database
+  -> IO Connection
+getFabLabConnection = Q.connectWithInfo
+
+-- |Function used to get the PoolOrConn necessary to interrogate the database
+getPoolOrConn :: IO Connection -> PoolOrConn Connection
+getPoolOrConn conn =
   PCConn
     $ ConnBuilder
-        (connectWithInfo host port user pswd name)
-        (closeConnection)
+        conn
+        (Q.closeConnection)
         (PoolCfg 1 12 1)
 
 -- |Produces an error with the given code and description
@@ -90,59 +104,95 @@ errorJson code message =
 baseHook :: Monad m => ActionCtxT () m (HVect '[])
 baseHook = return HNil
 
-authHook :: UserStorageBackend conn0 => ActionCtxT (HVect ts1) (WebStateM conn0 SessionVal st) (HVect (User : ts1))
+authHook :: ActionCtxT (HVect ts1) (WebStateM Connection SessionVal st) (HVect (Admin : ts1))
 authHook = do
   oldCtx <- getContext
   sess <- readSession
-  mUser <- getUserFromSession
-  case mUser of
-    Nothing ->
-      text "Unknown user. Login first!"
-    Just val ->
-      return (val :&: oldCtx)
+  mAdmin <- getAdminFromSession
+  case mAdmin of
+    Nothing -> redirect ""
+    Just val -> return (val :&: oldCtx)
 
-getUserFromSession :: UserStorageBackend b0 => ActionCtxT ctx (WebStateM b0 SessionVal st) (Maybe User)
-getUserFromSession =
-  runMaybeT $ do
-    sessId <- MaybeT readSession
-    uid <- MaybeT $ runQuery (\conn -> verifySession conn sessId 0)
-    user <- MaybeT $ runQuery (`getUserById` uid)
-    return user
+getAdminFromSession :: ActionCtxT ctx (WebStateM Connection SessionVal st) (Maybe Admin)
+getAdminFromSession =
+  do
+    sessId <- readSession
+    case sessId of
+      Nothing -> return Nothing
+      Just sId -> do
+        queryResult <- runQuery $ selectSessionFromId $ sId
+        case queryResult of
+          Left ex -> return Nothing
+          Right Nothing -> return Nothing
+          Right (Just session) ->
+            let (AdminId id) = _sessionAdmin session
+            in do
+                  queryResult' <- runQuery $ selectAdminFromUsername $ unpack id
+                  case queryResult' of
+                    Left ex -> return Nothing
+                    Right a -> return a
 
 loginAction :: Text -> Text -> ApiAction ctx ()
-loginAction user pswd = undefined
+loginAction user pswd = do
+      queryResult <- runQuery $ checkUser (unpack user) (unpack pswd)
+      case queryResult of
+        Left ex -> text "There was a problem during your authentication"
+        Right WrongUsername -> text "Wrong username"
+        Right WrongPassword -> text "Wrong password"
+        Right AllOk -> do
+          time <- liftIO getCurrentTime
+          insertResult <- runQuery $ insertSession (unpack user) time
+          case insertResult of
+            Right () -> do
+              mSession <- runQuery $ selectMostRecentSession $ unpack user
+              case mSession of
+                Left ex -> text $ decodeUtf8 $ sqlErrorMsg ex
+                Right Nothing -> text "I seriously hope this text will never be displayed"
+                Right (Just session) ->
+                  let sid = _sessionIdSessione session
+                    in do
+                        writeSession (Just sid)
+                        redirect "app"
+            Left ex -> text $ decodeUtf8 $ sqlErrorMsg ex
 
 -- server functions
 runServer :: ApiCfg -> IO ()
 runServer cfg =
-  let conn =
-        getConnection (unpack $ acfg_db_location cfg)
+  let ioConn =
+        getFabLabConnection (unpack $ acfg_db_location cfg)
           (acfg_db_port cfg)
           (unpack $ acfg_db_user cfg)
           (unpack $ acfg_db_pswd cfg)
           (unpack $ acfg_db cfg)
    in do
-        spockCfg <- defaultSpockCfg Nothing conn ()
+        spockCfg <- defaultSpockCfg Nothing (getPoolOrConn ioConn) ()
         runSpock 8080 (spock spockCfg app)
 
 app :: Api ()
 app = do
+  middleware $ staticPolicy $ addBase "static"
   prehook baseHook $ do
     get root $ do
-      file "login form" $ getClientFilePath "login.html"
+      file "text/html" $ getClientFilePath "login.html"
     post "login" $ do
       maybeUser <- param "username"
       maybePswd <- param "password"
       case (maybeUser, maybePswd) of
         (Just user, Just pswd) -> loginAction user pswd
         (_, _) -> errorJson 400 "Missing parameter"
+    get "index.js" $
+      file "application/javascript" $ getClientFilePath "index.js"
+    get ("index.css") $ 
+      file "text/css" $ getClientFilePath "index.css"
     prehook authHook $ do
       -- here goes requests for pages and data
-      get "materials" $ do
-        queryResult <- runQuery selectAllMaterials
+      get "people" $ do
+        queryResult <- runQuery selectAllPeople
         case queryResult of
           Left ex -> errorJson 400 $ decodeUtf8 $ sqlErrorMsg ex
-          Right allMaterials -> json allMaterials
+          Right allPeople -> json allPeople
+      get "app" $ do
+        file "text/html" $ getClientFilePath "index.html"
 
 -- orphan istances (argh) because they are not necessary for the db part of the application, only for the server one
 deriving instance FromJSON Person

@@ -15,8 +15,12 @@
 module Users where
 
 import Control.Exception
+import Crypto.KDF.BCrypt (hashPassword, validatePassword)
+import qualified Data.ByteString as BS
+import Data.ByteString.UTF8 as BSU
 import Data.Int (Int)
-import Data.Text
+import Data.Text as T
+import Data.Text.Encoding
 import Data.Time
 import Database.Beam
 import Database.Beam.Backend.SQL (BeamSqlBackend)
@@ -38,7 +42,7 @@ data CheckUserResult
 data AdminT f
   = Admin
       { _adminUsername :: Columnar f Text,
-        _adminHash :: Columnar f Text
+        _adminHash :: Columnar f BS.ByteString
         }
   deriving (Beamable, Generic)
 
@@ -127,16 +131,17 @@ runBeam = runBeamPostgres --Debug putStrLn -- change for debug or production pur
 -- admins functions
 -- | Insert a new admin into the database
 insertAdmin :: String -> String -> (Connection -> IO (Either SqlError ()))
-insertAdmin name hash =
-  \conn ->
+insertAdmin name pswd =
+  \conn -> do
+    hash <- hashPassword 12 $ BSU.fromString pswd
     try
       $ runBeam conn
       $ runInsert
       $ insert (_admins adminDb)
       $ insertValues
           [ Admin
-              (pack name)
-              (pack hash)
+              (T.pack name)
+              hash
             ]
 
 -- |Select the admins with the given username
@@ -147,18 +152,18 @@ selectAdminFromUsername name =
       $ runBeam conn
       $ runSelectReturningOne
       $ select
-      $ filter_ (\n -> _adminUsername n ==. (val_ (pack name)))
+      $ filter_ (\n -> _adminUsername n ==. (val_ (T.pack name)))
       $ all_ (_admins adminDb)
 
--- |Checks if a user is in the database, with the correct hash
+-- |Checks if a user is in the database, with the correct password
 checkUser :: String -> String -> (Connection -> IO (Either SqlError CheckUserResult))
-checkUser user hash =
+checkUser user pswd =
   \conn -> do
     mAdmin <- selectAdminFromUsername user conn
     case mAdmin of
       Left ex -> return $ Left ex
       Right Nothing -> return $ Right WrongUsername
-      Right (Just admin) -> return $ Right $ if (pack hash) == (_adminHash admin) then AllOk else WrongPassword
+      Right (Just admin) -> return $ Right $ if validatePassword (BSU.fromString pswd) (_adminHash admin) then AllOk else WrongPassword
 
 -- sessions functions
 -- | Insert a new admin into the database

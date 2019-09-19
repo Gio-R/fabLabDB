@@ -28,6 +28,7 @@ dependencies:
 - configurator
 - cryptonite
 - hvect
+- memory
 - mtl
 - postgresql-libpq
 - scientific
