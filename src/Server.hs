@@ -113,6 +113,18 @@ authHook = do
     Nothing -> redirect ""
     Just val -> return (val :&: oldCtx)
 
+adminHook :: ActionCtxT (HVect ts1) (WebStateM Connection SessionVal st) (HVect (User : ts1))
+adminHook = do
+  oldCtx <- getContext
+  sess <- readSession
+  mUser <- getUserFromSession
+  case mUser of
+    Nothing -> redirect ""
+    Just user -> 
+      case _userAdmin user of
+        True -> return (user :&: oldCtx)
+        False -> redirect ""
+
 getUserFromSession :: ActionCtxT ctx (WebStateM Connection SessionVal st) (Maybe User)
 getUserFromSession =
   do
@@ -197,7 +209,19 @@ app = do
         case queryResult of
           Left ex -> errorJson 400 $ decodeUtf8 $ sqlErrorMsg ex
           Right allPeople -> json allPeople
-
+      prehook adminHook $ do
+        get "manager" $ do
+          text "with great power comes great responsability!"
+        post "newUser" $ do
+          maybeUser <- param "username"
+          maybePswd <- param "password"
+          case (maybeUser, maybePswd) of
+            (Just user, Just pswd) -> do
+              queryResult <- runQuery $ insertUser user pswd
+              case queryResult of 
+                Left ex -> errorJson 400 $ decodeUtf8 $ sqlErrorMsg ex
+                Right () -> text "all went well"
+            (_, _) -> errorJson 400 "Missing parameter"
 -- orphan istances (argh) because they are not necessary for the db part of the application, only for the server one
 deriving instance FromJSON Person
 

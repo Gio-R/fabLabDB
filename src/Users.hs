@@ -114,7 +114,7 @@ userDb =
       { _sessioni =
           modifyTableFields
             tableModification
-              { _sessionUtente = UserId (fieldNamed "user")
+              { _sessionUtente = UserId (fieldNamed "utente")
                 }
         }
 
