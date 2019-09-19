@@ -26,6 +26,7 @@ dependencies:
 - beam-postgres
 - bytestring
 - configurator
+- cryptonite
 - hvect
 - mtl
 - postgresql-libpq
@@ -33,7 +34,6 @@ dependencies:
 - Spock >= 0.11
 - text
 - time
-- transformers
 - utf8-string
 - wai-middleware-static
 
