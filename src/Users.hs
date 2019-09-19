@@ -31,45 +31,53 @@ import Database.PostgreSQL.LibPQ (ExecStatus (NonfatalError))
 -- |A session id
 type SessionID = Int
 
--- |The result of a login
+-- |The result of a user login
 data CheckUserResult
   = AllOk
   | WrongUsername
   | WrongPassword
   deriving (Eq, Show)
 
--- |Data representing an admin
-data AdminT f
-  = Admin
-      { _adminUsername :: Columnar f Text,
-        _adminHash :: Columnar f BS.ByteString
+-- |The result of an admin login
+data CheckAdminResult
+  = AdminOk
+  | WrongLogin
+  | NotAnAdmin
+  deriving (Eq, Show)
+
+-- |Data representing an user
+data UserT f
+  = User
+      { _userUsername :: Columnar f Text,
+        _userHash :: Columnar f BS.ByteString,
+        _userAdmin :: Columnar f Bool
         }
   deriving (Beamable, Generic)
 
-instance Table AdminT where
+instance Table UserT where
 
-  data PrimaryKey AdminT f = AdminId (Columnar f Text) deriving (Beamable, Generic)
+  data PrimaryKey UserT f = UserId (Columnar f Text) deriving (Beamable, Generic)
 
-  primaryKey = AdminId . _adminUsername
+  primaryKey = UserId . _userUsername
 
-type Admin = AdminT Identity
+type User = UserT Identity
 
-type AdminId = PrimaryKey AdminT Identity
+type UserId = PrimaryKey UserT Identity
 
-deriving instance Eq Admin
+deriving instance Eq User
 
-deriving instance Show Admin
+deriving instance Show User
 
-deriving instance Eq AdminId
+deriving instance Eq UserId
 
-deriving instance Show AdminId
+deriving instance Show UserId
 
 -- |Data representing a session
 data SessionT f
   = Session
       { _sessionIdSessione :: Columnar f SessionID,
         _sessionOraCreazione :: Columnar f UTCTime,
-        _sessionAdmin :: PrimaryKey AdminT f
+        _sessionUtente :: PrimaryKey UserT f
         }
   deriving (Beamable, Generic)
 
@@ -92,21 +100,21 @@ deriving instance Eq SessionId
 deriving instance Show SessionId
 
 -- |Data representing the database
-data AdminDB f
-  = AdminDB
-      { _admins :: f (TableEntity AdminT),
+data UserDB f
+  = UserDB
+      { _utenti :: f (TableEntity UserT),
         _sessioni :: f (TableEntity SessionT)
         }
   deriving (Database be, Generic)
 
-adminDb :: DatabaseSettings be AdminDB
-adminDb =
+userDb :: DatabaseSettings be UserDB
+userDb =
   withDbModification defaultDbSettings
     dbModification
       { _sessioni =
           modifyTableFields
             tableModification
-              { _sessionAdmin = AdminId (fieldNamed "admin")
+              { _sessionUtente = UserId (fieldNamed "user")
                 }
         }
 
@@ -128,66 +136,82 @@ closeConnection = close
 runBeam :: Connection -> Pg a -> IO a
 runBeam = runBeamPostgres --Debug putStrLn -- change for debug or production purposes
 
--- admins functions
--- | Insert a new admin into the database
-insertAdmin :: String -> String -> (Connection -> IO (Either SqlError ()))
-insertAdmin name pswd =
+-- users functions
+-- | Insert a new user into the database
+insertUser :: String -> String -> (Connection -> IO (Either SqlError ()))
+insertUser name pswd =
   \conn -> do
     hash <- hashPassword 12 $ BSU.fromString pswd
     try
       $ runBeam conn
       $ runInsert
-      $ insert (_admins adminDb)
+      $ insert (_utenti userDb)
       $ insertValues
-          [ Admin
+          [ User
               (T.pack name)
               hash
+              False
             ]
 
--- |Select the admins with the given username
-selectAdminFromUsername :: String -> (Connection -> IO (Either SqlError (Maybe Admin)))
-selectAdminFromUsername name =
+-- |Select the users with the given username
+selectUserFromUsername :: String -> (Connection -> IO (Either SqlError (Maybe User)))
+selectUserFromUsername name =
   \conn ->
     try
       $ runBeam conn
       $ runSelectReturningOne
       $ select
-      $ filter_ (\n -> _adminUsername n ==. (val_ (T.pack name)))
-      $ all_ (_admins adminDb)
+      $ filter_ (\n -> _userUsername n ==. (val_ (T.pack name)))
+      $ all_ (_utenti userDb)
 
 -- |Checks if a user is in the database, with the correct password
 checkUser :: String -> String -> (Connection -> IO (Either SqlError CheckUserResult))
 checkUser user pswd =
   \conn -> do
-    mAdmin <- selectAdminFromUsername user conn
-    case mAdmin of
+    mUser <- selectUserFromUsername user conn
+    case mUser of
       Left ex -> return $ Left ex
       Right Nothing -> return $ Right WrongUsername
-      Right (Just admin) -> return $ Right $ if validatePassword (BSU.fromString pswd) (_adminHash admin) then AllOk else WrongPassword
+      Right (Just user) -> return $ Right $ if validatePassword (BSU.fromString pswd) (_userHash user) then AllOk else WrongPassword
+
+-- |Checks if a user is an admin in the database, with the correct password
+checkAdmin :: String -> String -> (Connection -> IO (Either SqlError CheckAdminResult))
+checkAdmin user pswd =
+  \conn -> do
+    checkResult <- checkUser user pswd conn
+    case checkResult of
+      Left ex -> return $ Left ex
+      Right AllOk -> do
+        mUser <- selectUserFromUsername user conn
+        case mUser of
+          Left ex -> return $ Left ex
+          Right Nothing -> return $ Right WrongLogin
+          Right (Just user) -> return $ Right $ if _userAdmin user then AdminOk else NotAnAdmin
+      _ -> return $ Right $ WrongLogin
 
 -- sessions functions
--- | Insert a new admin into the database
+-- | Insert a new user into the database
 insertSession :: String -> UTCTime -> (Connection -> IO (Either SqlError ()))
 insertSession name time =
   \conn -> do
-    selectedAdmins <- selectAdminFromUsername name conn
-    case selectedAdmins of
+    selectedUsers <- selectUserFromUsername name conn
+    case selectedUsers of
       Left ex -> return $ Left ex
-      Right Nothing -> return $ Left $ SqlError "" NonfatalError "No admin with the given username was present" "" ""
-      Right (Just admin) ->
+      Right Nothing -> return $ Left $ SqlError "" NonfatalError "No user with the given username was present" "" ""
+      Right (Just user) ->
         try
           $ runBeam conn
           $ runInsert
-          $ insert (_sessioni adminDb)
+          $ insert (_sessioni userDb)
           $ insertExpressions
               [ Session
                   { _sessionIdSessione = default_,
                     _sessionOraCreazione = val_ time,
-                    _sessionAdmin = val_ $ pk admin
+                    _sessionUtente = val_ $ pk user
                     }
                 ]
 
--- |Select the admins with the given username
+-- |Select the users with the given username
 selectSessionFromId :: SessionID -> (Connection -> IO (Either SqlError (Maybe Session)))
 selectSessionFromId sId =
   \conn ->
@@ -197,26 +221,26 @@ selectSessionFromId sId =
       $ select
       $ filter_ (\s -> _sessionIdSessione s ==. (val_ $ sId))
       $ all_
-      $ _sessioni adminDb
+      $ _sessioni userDb
 
--- |Select most recent session for a given admin
+-- |Select most recent session for a given user
 selectMostRecentSession :: String -> (Connection -> IO (Either SqlError (Maybe Session)))
 selectMostRecentSession user =
   \conn -> do
-    mAdmin <- selectAdminFromUsername user conn
-    case mAdmin of
+    mUser <- selectUserFromUsername user conn
+    case mUser of
       Left ex -> return $ Left ex
-      Right Nothing -> return $ Left $ SqlError "" NonfatalError "No admin with the given username was present" "" ""
-      Right (Just admin) ->
+      Right Nothing -> return $ Left $ SqlError "" NonfatalError "No user with the given username was present" "" ""
+      Right (Just user) ->
         try
           $ runBeam conn
           $ runSelectReturningOne
           $ select
           $ limit_ 1
           $ orderBy_ (desc_ . _sessionOraCreazione)
-          $ filter_ (\s -> _sessionAdmin s ==. (val_ $ pk admin))
+          $ filter_ (\s -> _sessionUtente s ==. (val_ $ pk user))
           $ all_
-          $ _sessioni adminDb
+          $ _sessioni userDb
 
 -- |Check if the session is still valid
 checkSessionValidity :: Session -> IO Bool

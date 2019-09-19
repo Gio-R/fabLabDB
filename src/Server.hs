@@ -104,17 +104,17 @@ errorJson code message =
 baseHook :: Monad m => ActionCtxT () m (HVect '[])
 baseHook = return HNil
 
-authHook :: ActionCtxT (HVect ts1) (WebStateM Connection SessionVal st) (HVect (Admin : ts1))
+authHook :: ActionCtxT (HVect ts1) (WebStateM Connection SessionVal st) (HVect (User : ts1))
 authHook = do
   oldCtx <- getContext
   sess <- readSession
-  mAdmin <- getAdminFromSession
-  case mAdmin of
+  mUser <- getUserFromSession
+  case mUser of
     Nothing -> redirect ""
     Just val -> return (val :&: oldCtx)
 
-getAdminFromSession :: ActionCtxT ctx (WebStateM Connection SessionVal st) (Maybe Admin)
-getAdminFromSession =
+getUserFromSession :: ActionCtxT ctx (WebStateM Connection SessionVal st) (Maybe User)
+getUserFromSession =
   do
     sessId <- readSession
     case sessId of
@@ -125,9 +125,9 @@ getAdminFromSession =
           Left ex -> return Nothing
           Right Nothing -> return Nothing
           Right (Just session) ->
-            let (AdminId id) = _sessionAdmin session
+            let (UserId id) = _sessionUtente session
             in do
-                  queryResult' <- runQuery $ selectAdminFromUsername $ unpack id
+                  queryResult' <- runQuery $ selectUserFromUsername $ unpack id
                   case queryResult' of
                     Left ex -> return Nothing
                     Right a -> return a
@@ -184,15 +184,19 @@ app = do
       file "application/javascript" $ getClientFilePath "index.js"
     get ("index.css") $ 
       file "text/css" $ getClientFilePath "index.css"
+    get "login.js" $
+      file "application/javascript" $ getClientFilePath "login.js"
+    get ("login.css") $ 
+      file "text/css" $ getClientFilePath "login.css"
     prehook authHook $ do
       -- here goes requests for pages and data
+      get "app" $ do
+        file "text/html" $ getClientFilePath "index.html"
       get "people" $ do
         queryResult <- runQuery selectAllPeople
         case queryResult of
           Left ex -> errorJson 400 $ decodeUtf8 $ sqlErrorMsg ex
           Right allPeople -> json allPeople
-      get "app" $ do
-        file "text/html" $ getClientFilePath "index.html"
 
 -- orphan istances (argh) because they are not necessary for the db part of the application, only for the server one
 deriving instance FromJSON Person
