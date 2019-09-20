@@ -47,6 +47,7 @@ data ApiCfg
 -- app :: SpockM conn sess st ()
 -- SpockM conn sess st = SpockCtxM () conn sess st
 -- SpockCtxM ctx conn sess st = SpockCtxT ctx (WebStateM conn sess st)
+-- json :: (ToJSON a, MonadIO m) => a -> ActionT m ()
 type SessionVal = Maybe SessionID
 
 type Api ctx = SpockCtxM ctx Connection SessionVal () ()
@@ -93,7 +94,7 @@ getPoolOrConn conn =
         (PoolCfg 1 12 1)
 
 -- |Produces an error with the given code and description
-errorJson :: Int -> Text -> ApiAction ctx ()
+errorJson :: MonadIO m => Int -> Text -> ActionCtxT ctx m b
 errorJson code message =
   json
     $ object
@@ -110,7 +111,7 @@ authHook = do
   sess <- readSession
   mUser <- getUserFromSession
   case mUser of
-    Nothing -> redirect ""
+    Nothing -> errorJson 401 "Utente non autorizzato"
     Just val -> return (val :&: oldCtx)
 
 adminHook :: ActionCtxT (HVect ts1) (WebStateM Connection SessionVal st) (HVect (User : ts1))
@@ -123,7 +124,7 @@ adminHook = do
     Just user -> 
       case _userAdmin user of
         True -> return (user :&: oldCtx)
-        False -> redirect ""
+        False -> errorJson 401 "Admin non autorizzato"
 
 getUserFromSession :: ActionCtxT ctx (WebStateM Connection SessionVal st) (Maybe User)
 getUserFromSession =
@@ -184,6 +185,7 @@ app :: Api ()
 app = do
   middleware $ staticPolicy $ addBase "static"
   prehook baseHook $ do
+    -- routes for unauthenticated users
     get root $ do
       file "text/html" $ getClientFilePath "login.html"
     post "login" $ do
@@ -191,25 +193,26 @@ app = do
       maybePswd <- param "password"
       case (maybeUser, maybePswd) of
         (Just user, Just pswd) -> loginAction user pswd
-        (_, _) -> errorJson 400 "Missing parameter"
-    get "index.js" $
-      file "application/javascript" $ getClientFilePath "index.js"
-    get ("index.css") $ 
-      file "text/css" $ getClientFilePath "index.css"
+        (_, _) -> errorJson (400 :: Int) ("Missing parameter" :: Text)
     get "login.js" $
       file "application/javascript" $ getClientFilePath "login.js"
     get ("login.css") $ 
       file "text/css" $ getClientFilePath "login.css"
     prehook authHook $ do
-      -- here goes requests for pages and data
+      -- routes for authenticated users
       get "app" $ do
         file "text/html" $ getClientFilePath "index.html"
       get "people" $ do
         queryResult <- runQuery selectAllPeople
         case queryResult of
-          Left ex -> errorJson 400 $ decodeUtf8 $ sqlErrorMsg ex
+          Left ex -> errorJson (400 :: Int) $ decodeUtf8 $ sqlErrorMsg ex
           Right allPeople -> json allPeople
+      get "index.js" $
+        file "application/javascript" $ getClientFilePath "index.js"
+      get ("index.css") $ 
+        file "text/css" $ getClientFilePath "index.css"
       prehook adminHook $ do
+        -- routes for authenticated admins
         get "manager" $ do
           text "with great power comes great responsability!"
         post "newUser" $ do
@@ -219,9 +222,9 @@ app = do
             (Just user, Just pswd) -> do
               queryResult <- runQuery $ insertUser user pswd
               case queryResult of 
-                Left ex -> errorJson 400 $ decodeUtf8 $ sqlErrorMsg ex
+                Left ex -> errorJson (400 :: Int) $ decodeUtf8 $ sqlErrorMsg ex
                 Right () -> text "all went well"
-            (_, _) -> errorJson 400 "Missing parameter"
+            (_, _) -> errorJson (400 :: Int) ("Missing parameter" :: Text)
 -- orphan istances (argh) because they are not necessary for the db part of the application, only for the server one
 deriving instance FromJSON Person
 
