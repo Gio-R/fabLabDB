@@ -174,12 +174,12 @@ loginAction user pswd = do
                     redirect "app"
         Left ex -> messageJson 500 $ decodeUtf8 $ sqlErrorMsg ex
 
--- |Executes a query and sends the result as a json message
-executeQueryAndSendResult
+-- |Executes a query that returns a list and sends the result as a json message
+executeQueryListAndSendResult
   :: (HasSpock (ActionCtxT ctx m), ToJSON a, MonadIO m)
-  => (SpockConn (ActionCtxT ctx m) -> IO (Either SqlError a))
+  => (SpockConn (ActionCtxT ctx m) -> IO (Either SqlError [a]))
   -> ActionCtxT ctx m b
-executeQueryAndSendResult query = do
+executeQueryListAndSendResult query = do
   queryResult <- runQuery query
   case queryResult of
     Left ex -> messageJson 500 $ decodeUtf8 $ sqlErrorMsg ex
@@ -222,7 +222,37 @@ app = do
       get "app" $ do
         file "text/html" $ getClientFilePath "index.html"
       get "people" $ do
-        executeQueryAndSendResult selectAllPeople
+        executeQueryListAndSendResult selectAllPeople
+      get "cutterOperators" $ do
+        executeQueryListAndSendResult selectAllLaserCutterOperators
+      get "printerOperators" $ do
+        executeQueryListAndSendResult selectAllPrinterOperators
+      get "materials" $ do
+        executeQueryListAndSendResult selectAllMaterials
+      get "materials_classes" $ do
+        executeQueryListAndSendResult selectAllMaterialsClasses
+      get "processings" $ do
+        executeQueryListAndSendResult selectAllProcessings
+      get "types" $ do
+        executeQueryListAndSendResult selectAllTypes
+      get "filaments" $ do
+        executeQueryListAndSendResult selectAllFilaments
+      get "plastics" $ do
+        executeQueryListAndSendResult selectAllPlastics
+      get "printers" $ do
+        executeQueryListAndSendResult selectAllPrinters
+      get "prints" $ do
+        executeQueryListAndSendResult selectAllPrints
+      get "incomplete_prints" $ do
+        executeQueryListAndSendResult selectAllIncompletePrints
+      get "complete_prints" $ do
+        executeQueryListAndSendResult selectAllCompletePrints
+      get "cuts" $ do
+        executeQueryListAndSendResult selectAllCuts
+      get "incomplete_cuts" $ do
+        executeQueryListAndSendResult selectAllIncompleteCuts
+      get "complete_cuts" $ do
+        executeQueryListAndSendResult selectAllCompleteCuts
       get "index.js"
         $ file "application/javascript"
         $ getClientFilePath "index.js"
