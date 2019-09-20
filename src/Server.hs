@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -20,7 +21,7 @@ import Data.Text
 import Data.Text.Encoding
 import Data.Time
 import Database.Beam
-import Database.Beam.Postgres (Connection, sqlErrorMsg)
+import Database.Beam.Postgres (Connection, SqlError, sqlErrorMsg)
 import GHC.Generics
 import Network.Wai.Middleware.Static
 import Query as Q
@@ -93,7 +94,7 @@ getPoolOrConn conn =
         (Q.closeConnection)
         (PoolCfg 1 12 1)
 
--- |Produces an error with the given code and description
+-- |Sends a json message with the given code and description
 messageJson :: MonadIO m => Int -> Text -> ActionCtxT ctx m b
 messageJson code message =
   json
@@ -102,9 +103,11 @@ messageJson code message =
           "error" .= object ["code" .= code, "message" .= message]
           ]
 
+-- |Basic authentication level
 baseHook :: Monad m => ActionCtxT () m (HVect '[])
 baseHook = return HNil
 
+-- |Authorized user authentication level
 authHook :: ActionCtxT (HVect ts1) (WebStateM Connection SessionVal st) (HVect (User : ts1))
 authHook = do
   oldCtx <- getContext
@@ -114,6 +117,7 @@ authHook = do
     Nothing -> messageJson 401 "Utente non autorizzato"
     Just val -> return (val :&: oldCtx)
 
+-- |Admin authorization level
 adminHook :: ActionCtxT (HVect ts1) (WebStateM Connection SessionVal st) (HVect (User : ts1))
 adminHook = do
   oldCtx <- getContext
@@ -121,11 +125,12 @@ adminHook = do
   mUser <- getUserFromSession
   case mUser of
     Nothing -> redirect ""
-    Just user -> 
+    Just user ->
       case _userAdmin user of
         True -> return (user :&: oldCtx)
         False -> messageJson 401 "Admin non autorizzato"
 
+-- |Function to get the user of the current session
 getUserFromSession :: ActionCtxT ctx (WebStateM Connection SessionVal st) (Maybe User)
 getUserFromSession =
   do
@@ -139,34 +144,46 @@ getUserFromSession =
           Right Nothing -> return Nothing
           Right (Just session) ->
             let (UserId id) = _sessionUtente session
-            in do
+             in do
                   queryResult' <- runQuery $ selectUserFromUsername $ unpack id
                   case queryResult' of
                     Left ex -> return Nothing
                     Right a -> return a
 
+-- |Functions used to log in a user
 loginAction :: Text -> Text -> ApiAction ctx ()
 loginAction user pswd = do
-      queryResult <- runQuery $ checkUser (unpack user) (unpack pswd)
-      case queryResult of
-        Left ex -> messageJson 500 "Problema durante l'autenticazione"
-        Right WrongUsername -> messageJson 401 "Username errata"
-        Right WrongPassword -> messageJson 401 "Password errata"
-        Right AllOk -> do
-          time <- liftIO getCurrentTime
-          insertResult <- runQuery $ insertSession (unpack user) time
-          case insertResult of
-            Right () -> do
-              mSession <- runQuery $ selectMostRecentSession $ unpack user
-              case mSession of
-                Left ex -> text $ decodeUtf8 $ sqlErrorMsg ex
-                Right Nothing -> messageJson 666 "Spero seriamente che questo testo non sarà mai mostrato"
-                Right (Just session) ->
-                  let sid = _sessionIdSessione session
-                    in do
-                        writeSession (Just sid)
-                        redirect "app"
-            Left ex -> messageJson 500 $ decodeUtf8 $ sqlErrorMsg ex
+  queryResult <- runQuery $ checkUser (unpack user) (unpack pswd)
+  case queryResult of
+    Left ex -> messageJson 500 "Problema durante l'autenticazione"
+    Right WrongUsername -> messageJson 401 "Username errata"
+    Right WrongPassword -> messageJson 401 "Password errata"
+    Right AllOk -> do
+      time <- liftIO getCurrentTime
+      insertResult <- runQuery $ insertSession (unpack user) time
+      case insertResult of
+        Right () -> do
+          mSession <- runQuery $ selectMostRecentSession $ unpack user
+          case mSession of
+            Left ex -> text $ decodeUtf8 $ sqlErrorMsg ex
+            Right Nothing -> messageJson 666 "Spero seriamente che questo testo non sarà mai mostrato"
+            Right (Just session) ->
+              let sid = _sessionIdSessione session
+               in do
+                    writeSession (Just sid)
+                    redirect "app"
+        Left ex -> messageJson 500 $ decodeUtf8 $ sqlErrorMsg ex
+
+-- |Executes a query and sends the result as a json message
+executeQueryAndSendResult
+  :: (HasSpock (ActionCtxT ctx m), ToJSON a, MonadIO m)
+  => (SpockConn (ActionCtxT ctx m) -> IO (Either SqlError a))
+  -> ActionCtxT ctx m b
+executeQueryAndSendResult query = do
+  queryResult <- runQuery query
+  case queryResult of
+    Left ex -> messageJson 500 $ decodeUtf8 $ sqlErrorMsg ex
+    Right result -> json result
 
 -- server functions
 runServer :: ApiCfg -> IO ()
@@ -194,23 +211,24 @@ app = do
       case (maybeUser, maybePswd) of
         (Just user, Just pswd) -> loginAction user pswd
         (_, _) -> messageJson 401 "Parametro mancante"
-    get "login.js" $
-      file "application/javascript" $ getClientFilePath "login.js"
-    get ("login.css") $ 
-      file "text/css" $ getClientFilePath "login.css"
+    get "login.js"
+      $ file "application/javascript"
+      $ getClientFilePath "login.js"
+    get ("login.css")
+      $ file "text/css"
+      $ getClientFilePath "login.css"
     prehook authHook $ do
       -- routes for authenticated users
       get "app" $ do
         file "text/html" $ getClientFilePath "index.html"
       get "people" $ do
-        queryResult <- runQuery selectAllPeople
-        case queryResult of
-          Left ex -> messageJson 500 $ decodeUtf8 $ sqlErrorMsg ex
-          Right allPeople -> json allPeople
-      get "index.js" $
-        file "application/javascript" $ getClientFilePath "index.js"
-      get ("index.css") $ 
-        file "text/css" $ getClientFilePath "index.css"
+        executeQueryAndSendResult selectAllPeople
+      get "index.js"
+        $ file "application/javascript"
+        $ getClientFilePath "index.js"
+      get ("index.css")
+        $ file "text/css"
+        $ getClientFilePath "index.css"
       prehook adminHook $ do
         -- routes for authenticated admins
         get "manager" $ do
@@ -221,10 +239,11 @@ app = do
           case (maybeUser, maybePswd) of
             (Just user, Just pswd) -> do
               queryResult <- runQuery $ insertUser user pswd
-              case queryResult of 
+              case queryResult of
                 Left ex -> messageJson 500 $ decodeUtf8 $ sqlErrorMsg ex
                 Right () -> messageJson 200 "Tutto bene"
             (_, _) -> messageJson 401 "Parametro mancante"
+
 -- orphan istances (argh) because they are not necessary for the db part of the application, only for the server one
 deriving instance FromJSON Person
 
