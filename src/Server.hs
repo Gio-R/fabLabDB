@@ -94,8 +94,8 @@ getPoolOrConn conn =
         (PoolCfg 1 12 1)
 
 -- |Produces an error with the given code and description
-errorJson :: MonadIO m => Int -> Text -> ActionCtxT ctx m b
-errorJson code message =
+messageJson :: MonadIO m => Int -> Text -> ActionCtxT ctx m b
+messageJson code message =
   json
     $ object
         [ "result" .= String "failure",
@@ -111,7 +111,7 @@ authHook = do
   sess <- readSession
   mUser <- getUserFromSession
   case mUser of
-    Nothing -> errorJson 401 "Utente non autorizzato"
+    Nothing -> messageJson 401 "Utente non autorizzato"
     Just val -> return (val :&: oldCtx)
 
 adminHook :: ActionCtxT (HVect ts1) (WebStateM Connection SessionVal st) (HVect (User : ts1))
@@ -124,7 +124,7 @@ adminHook = do
     Just user -> 
       case _userAdmin user of
         True -> return (user :&: oldCtx)
-        False -> errorJson 401 "Admin non autorizzato"
+        False -> messageJson 401 "Admin non autorizzato"
 
 getUserFromSession :: ActionCtxT ctx (WebStateM Connection SessionVal st) (Maybe User)
 getUserFromSession =
@@ -149,9 +149,9 @@ loginAction :: Text -> Text -> ApiAction ctx ()
 loginAction user pswd = do
       queryResult <- runQuery $ checkUser (unpack user) (unpack pswd)
       case queryResult of
-        Left ex -> text "There was a problem during your authentication"
-        Right WrongUsername -> text "Wrong username"
-        Right WrongPassword -> text "Wrong password"
+        Left ex -> messageJson 500 "Problema durante l'autenticazione"
+        Right WrongUsername -> messageJson 401 "Username errata"
+        Right WrongPassword -> messageJson 401 "Password errata"
         Right AllOk -> do
           time <- liftIO getCurrentTime
           insertResult <- runQuery $ insertSession (unpack user) time
@@ -160,13 +160,13 @@ loginAction user pswd = do
               mSession <- runQuery $ selectMostRecentSession $ unpack user
               case mSession of
                 Left ex -> text $ decodeUtf8 $ sqlErrorMsg ex
-                Right Nothing -> text "I seriously hope this text will never be displayed"
+                Right Nothing -> messageJson 666 "Spero seriamente che questo testo non sarà mai mostrato"
                 Right (Just session) ->
                   let sid = _sessionIdSessione session
                     in do
                         writeSession (Just sid)
                         redirect "app"
-            Left ex -> text $ decodeUtf8 $ sqlErrorMsg ex
+            Left ex -> messageJson 500 $ decodeUtf8 $ sqlErrorMsg ex
 
 -- server functions
 runServer :: ApiCfg -> IO ()
@@ -193,7 +193,7 @@ app = do
       maybePswd <- param "password"
       case (maybeUser, maybePswd) of
         (Just user, Just pswd) -> loginAction user pswd
-        (_, _) -> errorJson (400 :: Int) ("Missing parameter" :: Text)
+        (_, _) -> messageJson 401 "Parametro mancante"
     get "login.js" $
       file "application/javascript" $ getClientFilePath "login.js"
     get ("login.css") $ 
@@ -205,7 +205,7 @@ app = do
       get "people" $ do
         queryResult <- runQuery selectAllPeople
         case queryResult of
-          Left ex -> errorJson (400 :: Int) $ decodeUtf8 $ sqlErrorMsg ex
+          Left ex -> messageJson 500 $ decodeUtf8 $ sqlErrorMsg ex
           Right allPeople -> json allPeople
       get "index.js" $
         file "application/javascript" $ getClientFilePath "index.js"
@@ -222,9 +222,9 @@ app = do
             (Just user, Just pswd) -> do
               queryResult <- runQuery $ insertUser user pswd
               case queryResult of 
-                Left ex -> errorJson (400 :: Int) $ decodeUtf8 $ sqlErrorMsg ex
-                Right () -> text "all went well"
-            (_, _) -> errorJson (400 :: Int) ("Missing parameter" :: Text)
+                Left ex -> messageJson 500 $ decodeUtf8 $ sqlErrorMsg ex
+                Right () -> messageJson 200 "Tutto bene"
+            (_, _) -> messageJson 401 "Parametro mancante"
 -- orphan istances (argh) because they are not necessary for the db part of the application, only for the server one
 deriving instance FromJSON Person
 
