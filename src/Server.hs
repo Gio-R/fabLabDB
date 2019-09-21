@@ -164,7 +164,7 @@ loginAction user pswd = do
         Right () -> do
           mSession <- runQuery $ selectMostRecentSession $ unpack user
           case mSession of
-            Left ex -> text $ decodeUtf8 $ sqlErrorMsg ex
+            Left ex -> messageJson 500 $ decodeUtf8 $ sqlErrorMsg ex
             Right Nothing -> messageJson 666 "Spero seriamente che questo testo non sarà mai mostrato"
             Right (Just session) ->
               let sid = _sessionIdSessione session
