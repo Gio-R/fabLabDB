@@ -1,5 +1,5 @@
 body {
-  background-color: #51ff51;
+  background-color: #9eff9e;
   font-family: 'Asap', sans-serif;
 }
 #login_form {
@@ -10,16 +10,16 @@ body {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 400px;
+  width: 40%;
   transform: translate(-50%, -50%);
   transition: transform 300ms, box-shadow 300ms;
-  box-shadow: 3px 3px 3px #ff8181;
+  box-shadow: 3px 3px 3px #ff7d7d;
 }
 #login_form::before, #login_form::after {
   content: '';
   position: absolute;
-  width: 600px;
-  height: 600px;
+  width: 50rem;
+  height: 50rem;
   border-top-left-radius: 40%;
   border-top-right-radius: 45%;
   border-bottom-left-radius: 35%;
@@ -29,13 +29,13 @@ body {
 #login_form::before {
   left: 40%;
   bottom: -130%;
-  background-color: rgba(255, 83, 83, 0.15);
+  background-color: rgba(255, 184, 184, 0.15);
   animation: waves 6s infinite linear;
 }
 #login_form::after {
   left: 35%;
   bottom: -125%;
-  background-color: rgba(255, 129, 129, 0.2);
+  background-color: rgba(255, 125, 125, 0.2);
   animation: waves 7s infinite;
 }
 input {
@@ -44,6 +44,7 @@ input {
   border-radius: 5px;
   font-size: 16px;
   background: white;
+  color: #142114;
   width: 100%;
   border: 0;
   padding: 10px 10px;
@@ -52,22 +53,28 @@ input {
 button {
   font-family: 'Asap', sans-serif;
   cursor: pointer;
-  color: white;
+  color: #26a929;
   font-size: 16px;
   text-transform: uppercase;
-  width: 80px;
+  width: auto;
+  border: 0;
+  padding: 8px 5px 8px 5px;
+  margin-top: 10px;
+  margin-left: -5px;
+  border-radius: 5px;
+  background-color: #9eff9e;
+}
+button:hover {
+  background-color: #7dff7d;
+}
+#login_error {
+  color: #a62929;
+  width: 100%;
   border: 0;
   padding: 10px 0;
   margin-top: 10px;
   margin-left: -5px;
-  border-radius: 5px;
-  background-color: #51ff51;
-}
-button:hover {
-  background-color: #38ff38;
-}
-#login_error {
-  color: #a61a1a;
+  margin-bottom: -15px;
 }
 @keyframes waves {
   from {
