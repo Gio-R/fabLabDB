@@ -8,22 +8,33 @@
 </head>
 <body>
 
-<div class="menu">
-    <button class="dropbtn">Menù</button>
-    <div class="dropdown-content">
-        <a href="https://www.google.com">Anagrafiche</a>
-        <a href="https://www.facebook.com">Stampe</a>
-        <a href="https://www.youtube.com">Intagli</a>
-        <a href="https://www.youtube.com">Materiali</a>
-        <a href="https://www.youtube.com">Plastiche</a>
-    </div>
+<div class="fixed">
+  <nav class="menu">
+      <ul class="menu_list">
+        <li class="menu_item" id="anagrafiche">
+          Anagrafiche
+          <ul class="sub_menu">
+            <li class="sub_menu_item">Inserisci anagrafica</li>
+            <li class="sub_menu_item">Modifica stato persona</li>
+            <li class="sub_menu_item">Visualizza anagrafiche</li>
+            <li class="sub_menu_item">Visualizza operatori intagliatrice</li>
+            <li class="sub_menu_item">Visualizza operatori stampante</li>
+          </ul>
+        </li>
+        <li class="menu_item" id="intagli">Intagli</a></li>
+        <li class="menu_item" id="stampe">Stampe</li>
+        <li class="menu_item" id="materiali">Materiali</li>
+        <li class="menu_item" id="plastiche">Plastiche</li>
+        <li class="menu_item" id="manager">Management</li>
+      </ul>
+    </nav>
 </div>
 <div id="user_input">
-    <form action="" method="POST">
-        <select id="select_richiedenti" name="richiedenti">
-            <option value="">Seleziona richiedente</option>
-        </select> 
-    </form>
+  <form action="" method="POST">
+    <select id="select_richiedenti" name="richiedenti">
+      <option value="">Seleziona richiedente</option>
+    </select> 
+  </form>
 </div>
 <div id="result">
 

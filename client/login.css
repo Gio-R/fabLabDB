@@ -1,5 +1,5 @@
 body {
-  background-color: #9eff9e;
+  background-color: #b8ffb8;
   font-family: 'Asap', sans-serif;
 }
 #login_form {
@@ -62,7 +62,7 @@ button {
   margin-top: 10px;
   margin-left: -5px;
   border-radius: 5px;
-  background-color: #9eff9e;
+  background-color: #b8ffb8;
 }
 button:hover {
   background-color: #7dff7d;
