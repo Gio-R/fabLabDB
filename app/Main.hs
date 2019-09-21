@@ -1,6 +1,13 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Main where
 
-import Lib
+import Schema
+import Server
+import Query
+
+configFile :: FilePath
+configFile = "server.cfg"
 
 main :: IO ()
-main = someFunc
+main = parseConfig configFile >>= runServer
