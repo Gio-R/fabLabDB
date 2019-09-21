@@ -1,13 +1,24 @@
-document.getElementById("submit_button").onclick = function() {
-    var xhr = new XMLHttpRequest();
-    var fd = new FormData(document.getElementById("login_form"));
-    xhr.onreadystatechange = function() { 
-        if (xhr.readyState == 4 && xhr.status != 200) {
-            var error = JSON.parse(xhr.responseText).error.message;
-            var text = document.createTextNode("Login fallito");
-            document.getElementById("container").appendChild(text);
-        }
+window.onload = function() { 
+    document.getElementById('submit_button').onclick = function() {
+        var form = new FormData(document.getElementById('login_form'));
+        var post = {
+            method: 'POST',
+            body: form
+        };
+        fetch(window.location.href.toString() + 'login', post).then(function(response) {
+            if (!response.redirected && response.ok) {
+                response.json().then(jsonResponse => {
+                    if (jsonResponse["response"]["code"] == "401") {
+                        var error = document.createElement("P");
+                        error.innerHTML = jsonResponse["response"]["message"];
+                        error.id = "login_error";
+                        document.getElementById('login_form')
+                                .appendChild(error);
+                    }
+                });
+            } else if (response.redirected == true) {
+                window.location.replace(response.url);
+            }
+        });
     }
-    xhr.open("POST", window.location.href.toString() + "/login");
-    xhr.send(fd);
 }
