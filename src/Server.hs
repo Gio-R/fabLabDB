@@ -99,8 +99,7 @@ messageJson :: MonadIO m => Int -> Text -> ActionCtxT ctx m b
 messageJson code message =
   json
     $ object
-        [ "result" .= String "failure",
-          "error" .= object ["code" .= code, "message" .= message]
+        [ "response" .= object ["code" .= code, "message" .= message]
           ]
 
 -- |Basic authentication level
