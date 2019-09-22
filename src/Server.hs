@@ -17,6 +17,8 @@ import Data.Aeson hiding (json)
 import qualified Data.Configurator as C
 import Data.HVect
 import Data.List as L (groupBy)
+import Data.Maybe
+import Data.Scientific
 import Data.Text
 import Data.Text.Encoding
 import Data.Time
@@ -184,6 +186,23 @@ executeQueryListAndSendResult query = do
     Left ex -> messageJson 500 $ decodeUtf8 $ sqlErrorMsg ex
     Right result -> json result
 
+-- |Executes a query to insert or modify some data and sends the result as a json message
+executeModifyQueryAndSendResult
+  :: (HasSpock (ActionCtxT ctx m), MonadIO m)
+  => (SpockConn (ActionCtxT ctx m) -> IO (Either SqlError ()))
+  -> ActionCtxT ctx m b
+executeModifyQueryAndSendResult query = do
+  queryResult <- runQuery query
+  case queryResult of
+    Left ex -> messageJson 500 $ decodeUtf8 $ sqlErrorMsg ex
+    Right () -> messageJson 200 "Operazione riuscita"
+
+testParameters :: [Maybe a] -> Bool
+testParameters = (Prelude.all id) . (fmap isJust)
+
+toBool :: String -> Bool
+toBool = flip elem ["true", "True", "TRUE"]
+
 -- server functions
 runServer :: ApiCfg -> IO ()
 runServer cfg =
@@ -207,9 +226,12 @@ app = do
     post "login" $ do
       maybeUser <- param "username"
       maybePswd <- param "password"
-      case (maybeUser, maybePswd) of
-        (Just user, Just pswd) -> loginAction user pswd
-        (_, _) -> messageJson 401 "Parametro mancante"
+      if testParameters [maybeUser, maybePswd]
+        then
+          loginAction
+            (fromJust maybeUser)
+            (fromJust maybePswd)
+        else messageJson 422 "Parametro mancante"
     get "login.js"
       $ file "application/javascript"
       $ getClientFilePath "login.js"
@@ -220,6 +242,188 @@ app = do
       -- routes for authenticated users
       get "app" $ do
         file "text/html" $ getClientFilePath "index.html"
+      post "insert_person" $ do
+        maybeCf <- param "cf"
+        maybeName <- param "name"
+        maybeSurname <- param "surname"
+        if testParameters [maybeCf, maybeName, maybeSurname]
+          then
+            executeModifyQueryAndSendResult
+              $ insertPerson
+                  (fromJust maybeCf)
+                  (fromJust maybeName)
+                  (fromJust maybeSurname)
+          else messageJson 422 "Parametro mancante"
+      post "modify_person" $ do
+        maybeCf <- param "cf"
+        maybePartner <- param "partner"
+        maybeCutter <- param "cutter"
+        maybePrinter <- param "printer"
+        if testParameters [maybeCf, maybePartner, maybeCutter, maybePrinter]
+          then
+            executeModifyQueryAndSendResult
+              $ modifyPerson
+                  (fromJust maybeCf)
+                  (toBool $ fromJust maybePartner)
+                  (toBool $ fromJust maybeCutter)
+                  (toBool $ fromJust maybePrinter)
+          else messageJson 422 "Parametro mancante"
+      post "insert_class" $ do
+        maybeCode <- param "code"
+        maybeName <- param "name"
+        if testParameters [maybeCode, maybeName]
+          then
+            executeModifyQueryAndSendResult
+              $ insertMaterialsClass
+                  (fromJust maybeCode)
+                  (fromJust maybeName)
+          else messageJson 422 "Parametro mancante"
+      post "insert_material" $ do
+        maybeCode <- param "code"
+        maybeClass <- param "class"
+        maybeName <- param "name"
+        maybeWidth <- param "width"
+        maybeDescr <- param "description"
+        if testParameters [maybeCode, maybeClass, maybeName, maybeWidth, maybeDescr]
+          then
+            executeModifyQueryAndSendResult
+              $ insertMaterial
+                  (fromJust maybeCode)
+                  (fromJust maybeClass)
+                  (fromJust maybeName)
+                  (read $ fromJust maybeWidth :: Double)
+                  (fromJust maybeDescr)
+          else messageJson 422 "Parametro mancante"
+      post "insert_processing" $ do
+        maybeTypeCode <- param "type"
+        maybeMaterialCode <- param "material"
+        maybeMaxP <- param "max_potency"
+        maybeMinP <- param "min_potency"
+        maybeSpeed <- param "speed"
+        maybeDescr <- param "description"
+        if testParameters [maybeTypeCode, maybeMaterialCode, maybeMaxP, maybeMinP, maybeSpeed, maybeDescr]
+          then
+            executeModifyQueryAndSendResult
+              $ insertProcessing
+                  (fromJust maybeTypeCode)
+                  (fromJust maybeMaterialCode)
+                  (read $ fromJust maybeMaxP :: Int)
+                  (read $ fromJust maybeMinP :: Int)
+                  (read $ fromJust maybeSpeed :: Int)
+                  (fromJust maybeDescr)
+          else messageJson 422 "Parametro mancante"
+      post "insert_plastic" $ do
+        maybeCode <- param "code"
+        maybeName <- param "name"
+        maybeDescr <- param "description"
+        if testParameters [maybeCode, maybeName, maybeDescr]
+          then
+            executeModifyQueryAndSendResult
+              $ insertPlastic
+                  (fromJust maybeCode)
+                  (fromJust maybeName)
+                  (fromJust maybeDescr)
+          else messageJson 422 "Parametro mancante"
+      post "insert_filament" $ do
+        maybeCode <- param "code"
+        maybePlastic <- param "plastic"
+        maybeBrand <- param "brand"
+        maybeColor <- param "color"
+        if testParameters [maybeCode, maybePlastic, maybeBrand, maybeColor]
+          then
+            executeModifyQueryAndSendResult
+              $ insertFilament
+                  (fromJust maybeCode)
+                  (fromJust maybePlastic)
+                  (fromJust maybeBrand)
+                  (fromJust maybeColor)
+          else messageJson 422 "Parametro mancante"
+      post "insert_print" $ do
+        maybeCf <- param "client"
+        maybeDate <- param "date"
+        maybeDescr <- param "descr"
+        if testParameters [maybeCf, maybeDate, maybeDescr]
+          then
+            executeModifyQueryAndSendResult
+              $ insertPrint
+                  (fromJust maybeCf)
+                  (read $ fromJust maybeDate :: Day)
+                  (fromJust maybeDescr)
+          else messageJson 422 "Parametro mancante"
+      post "assign_print_operator" $ do
+        maybeCf <- param "operator"
+        maybeCode <- param "print"
+        if testParameters [maybeCode, maybeCf]
+          then
+            executeModifyQueryAndSendResult
+              $ assignPrint
+                  (read $ fromJust maybeCode :: Int)
+                  (fromJust maybeCf)
+          else messageJson 422 "Parametro mancante"
+      post "assign_print_printer" $ do
+        maybeCodePrinter <- param "printer"
+        maybeCode <- param "print"
+        if testParameters [maybeCode, maybeCodePrinter]
+          then
+            executeModifyQueryAndSendResult
+              $ assignPrinter
+                  (fromJust maybeCodePrinter)
+                  (read $ fromJust maybeCode :: Int)
+          else messageJson 422 "Parametro mancante"
+      post "modify_print" $ do
+        maybePrint <- param "print"
+        maybeDate <- param "date"
+        maybeTime <- param "time"
+        maybeTotal <- param "total"
+        maybeMaterials <- param "materials"
+        if testParameters [maybePrint, maybeTime, maybeTotal, maybeMaterials, maybeDate]
+          then
+            executeModifyQueryAndSendResult
+              $ completePrint
+                  (read $ fromJust maybePrint :: Int)
+                  (read $ fromJust maybeDate :: Day)
+                  (read $ fromJust maybeTime :: Double)
+                  (read $ fromJust maybeTotal :: Scientific)                  
+                  (read $ fromJust maybeMaterials :: Scientific)
+          else messageJson 422 "Parametro mancante"
+      post "insert_cut" $ do
+        maybeCf <- param "client"
+        maybeDate <- param "date"
+        maybeDescr <- param "descr"
+        if testParameters [maybeCf, maybeDate, maybeDescr]
+          then
+            executeModifyQueryAndSendResult
+              $ insertCut
+                  (fromJust maybeCf)
+                  (read $ fromJust maybeDate :: Day)
+                  (fromJust maybeDescr)
+          else messageJson 422 "Parametro mancante"
+      post "assign_cut_operator" $ do
+        maybeCf <- param "operator"
+        maybeCode <- param "print"
+        if testParameters [maybeCode, maybeCf]
+          then
+            executeModifyQueryAndSendResult
+              $ assignCut
+                  (read $ fromJust maybeCode :: Int)
+                  (fromJust maybeCf)
+          else messageJson 422 "Parametro mancante"
+      post "modify_cut" $  do
+        maybeCut <- param "cut"
+        maybeDate <- param "date"
+        maybeTime <- param "time"
+        maybeTotal <- param "total"
+        maybeMaterials <- param "materials"
+        if testParameters [maybeCut, maybeTime, maybeTotal, maybeMaterials, maybeDate]
+          then
+            executeModifyQueryAndSendResult
+              $ completeCut
+                  (read $ fromJust maybeCut :: Int)
+                  (read $ fromJust maybeDate :: Day)
+                  (read $ fromJust maybeTime :: Double)
+                  (read $ fromJust maybeTotal :: Scientific)                  
+                  (read $ fromJust maybeMaterials :: Scientific)
+          else messageJson 422 "Parametro mancante"
       get "people" $ do
         executeQueryListAndSendResult selectAllPeople
       get "cutterOperators" $ do
@@ -262,16 +466,42 @@ app = do
         -- routes for authenticated admins
         get "manager" $ do
           text "with great power comes great responsability!"
-        post "newUser" $ do
+        post "insert_type" $ do
+          maybeCode <- param "code"
+          maybeName <- param "name"
+          maybeDescr <- param "description"
+          if testParameters [maybeCode, maybeName, maybeDescr]
+            then
+              executeModifyQueryAndSendResult
+                $ insertType
+                    (fromJust maybeCode)
+                    (fromJust maybeName)
+                    (fromJust maybeDescr)
+            else messageJson 422 "Parametro mancante"
+        post "insert_printer" $ do
+          maybeCode <- param "code"
+          maybeBrand <- param "brand"
+          maybeModel <- param "model"
+          maybeDescr <- param "description"
+          if testParameters [maybeCode, maybeBrand, maybeModel, maybeDescr]
+            then
+              executeModifyQueryAndSendResult
+                $ insertPrinter
+                    (fromJust maybeCode)
+                    (fromJust maybeBrand)
+                    (fromJust maybeDescr)
+                    (fromJust maybeDescr)
+            else messageJson 422 "Parametro mancante"
+        post "insert_user" $ do
           maybeUser <- param "username"
           maybePswd <- param "password"
-          case (maybeUser, maybePswd) of
-            (Just user, Just pswd) -> do
-              queryResult <- runQuery $ insertUser user pswd
-              case queryResult of
-                Left ex -> messageJson 500 $ decodeUtf8 $ sqlErrorMsg ex
-                Right () -> messageJson 200 "Tutto bene"
-            (_, _) -> messageJson 401 "Parametro mancante"
+          if testParameters [maybeUser, maybePswd]
+            then
+              executeModifyQueryAndSendResult
+                $ insertUser
+                    (fromJust maybeUser)
+                    (fromJust maybePswd)
+            else messageJson 401 "Parametro mancante"
 
 -- orphan istances (argh) because they are not necessary for the db part of the application, only for the server one
 deriving instance FromJSON Person
