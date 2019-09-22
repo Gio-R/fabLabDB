@@ -73,3 +73,64 @@ body {
 .menu_item:hover .sub_menu {
 	display: block;
 }
+
+#user_input {
+	overflow: hidden;
+  background-color: transparent;
+  padding: 10px 20px 30px 30px;
+  border-radius: 10px;
+  position: absolute;
+  top: 20%;
+  left: 10%;
+  width: 80%;
+}
+
+.input_form {
+  overflow: hidden;
+  background-color: white;
+  padding: 10px 20px 30px 30px;
+  border-radius: 10px;
+  transition: transform 300ms, box-shadow 300ms;
+  box-shadow: 3px 3px 3px #e93a90;
+}
+input {
+  font-family: 'Asap', sans-serif;
+  display: block;
+	border-radius: 5px;
+  font-size: 16px;
+  background: white;
+  color: #142114;
+	width: 100%;
+	border: 0;
+  padding: 10px 10px;
+  margin: 15px -10px;
+}
+input:focus {
+	border: 1px solid #c2f56e;
+}
+button {
+  font-family: 'Asap', sans-serif;
+  cursor: pointer;
+  color: #5f9900;
+  font-size: 16px;
+  text-transform: uppercase;
+  width: auto;
+  border: 0;
+  padding: 8px 5px 8px 5px;
+  margin-top: 10px;
+  margin-left: -5px;
+  border-radius: 5px;
+  background-color: #c2f56e;
+}
+button:hover {
+  background-color: #aff53d;
+}
+.error {
+  color: #890043;
+  width: 100%;
+  border: 0;
+  padding: 10px 0;
+  margin-top: 10px;
+  margin-left: -5px;
+  margin-bottom: -15px;
+}
