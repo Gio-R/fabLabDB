@@ -1,18 +1,32 @@
+/*
+Colors:
+  base: #d30068, complement
+  background: #c2f56e light light green
+  sub menu focus: #aff53d light green
+  menu focus: #92ec00 green
+  sub menu shadow: #7eb12c dark green
+  menu focus text/sub menu text: #5f9900 dark dark green
+  menu shadow2: #e93a90 light red
+  menu shadow1: #d30068 red
+  menu background: #e969a8 ligh light red
+  menu text: #890043 dark dark red
+*/
+
 body {
-	background-color: #b8ffb8;
+	background-color: #c2f56e;
 	font-family: 'Asap', sans-serif;
 }
 
 .menu {
-	background-color: #ffb8b8;
-	color: #a62929;
-	box-shadow: 0 1px 3px 0 rgba(255, 125, 125, 0.12), 0 1px 2px 0 rgba(255, 125, 125, 0.24);
+	background-color: #e969a8;
+	color: #890043;
+	box-shadow: 0 1px 3px 0 rgba(211, 0, 104, 0.12), 0 1px 2px 0 rgba(233, 58, 144, 0.24);
 	border-radius: 3px;
 }
 
 .menu_item:hover {
-	background-color: #7dff7d;
-	color: #29a629;
+	background-color: #92ec00;
+	color: #5f9900;
 }
 
 .menu_list {
@@ -33,18 +47,18 @@ body {
 	display: none;
 	position: absolute;
 	border-radius: 5px;
-	background-color: #9eff9e;
+	background-color: #ffffff;
 	z-index: 1;
 	list-style: none;
-	margin: 0.5px;
+	margin: 1px;
 	padding: 15px;
 	padding-top: 3px;
-	padding-bottom: 3px;
-	box-shadow: 0 2px 3px 0 rgba(41, 166, 41, 0.12), 0 2px 3px 0 rgba(41, 166, 41, 0.24)
+	padding-bottom: 5px;
+	box-shadow: 0 2px 3px 0 rgba(126, 177, 44, 0.12), 0 2px 3px 0 rgba(126, 177, 44, 0.24)
 }
 
 .sub_menu_item {
-	color: #294a29;
+	color: #5f9900;
 	padding: 3px 3px;
 	border-radius: 3px;
 	text-decoration: none;
@@ -52,7 +66,7 @@ body {
 }
 
 .sub_menu_item:hover {
-	background-color: #b8ffb8;
+	background-color: #aff53d;
 	color: rgba(41, 74, 41, 0.75);
 }
 

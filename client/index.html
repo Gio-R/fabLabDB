@@ -14,27 +14,64 @@
         <li class="menu_item" id="anagrafiche">
           Anagrafiche
           <ul class="sub_menu">
-            <li class="sub_menu_item">Inserisci anagrafica</li>
-            <li class="sub_menu_item">Modifica stato persona</li>
-            <li class="sub_menu_item">Visualizza anagrafiche</li>
-            <li class="sub_menu_item">Visualizza operatori intagliatrice</li>
-            <li class="sub_menu_item">Visualizza operatori stampante</li>
+            <li class="sub_menu_item" id="insert_person">Inserisci anagrafica</li>
+            <li class="sub_menu_item" id="modify_person">Modifica stato persona</li>
+            <li class="sub_menu_item" id="show_people">Visualizza anagrafiche</li>
+            <li class="sub_menu_item" id="show_cut_operators">Visualizza operatori intagliatrice</li>
+            <li class="sub_menu_item" id="show_print_operators">Visualizza operatori stampante</li>
           </ul>
         </li>
-        <li class="menu_item" id="intagli">Intagli</a></li>
-        <li class="menu_item" id="stampe">Stampe</li>
-        <li class="menu_item" id="materiali">Materiali</li>
-        <li class="menu_item" id="plastiche">Plastiche</li>
-        <li class="menu_item" id="manager">Management</li>
+        <li class="menu_item" id="intagli">
+          Intagli
+          <ul class="sub_menu">
+            <li class="sub_menu_item" id="insert_cut">Inserisci intaglio</li>
+            <li class="sub_menu_item" id="assign_cut">Assegna intaglio</li>
+            <li class="sub_menu_item" id="complete_cut">Cambia stato intaglio</li>
+            <li class="sub_menu_item" id="assign_processing">Assegna lavorazione</li>
+            <li class="sub_menu_item" id="show_all_cuts">Visualizza tutti gli intagli</li>
+            <li class="sub_menu_item" id="insert_processing">Inserisci nuova lavorazione</li>
+            <li class="sub_menu_item" id="show_processings">Mostra lavorazioni</li>
+          </ul>
+        </li>
+        <li class="menu_item" id="stampe">
+          Stampe
+          <ul class="sub_menu">
+            <li class="sub_menu_item" id="insert_print">Inserisci stampa</li>
+            <li class="sub_menu_item" id="assign_print">Assegna stampa</li>
+            <li class="sub_menu_item" id="complete_print">Cambia stato stampa</li>
+            <li class="sub_menu_item" id="assign_filament">Assegna filamento</li>
+            <li class="sub_menu_item" id="show_all_prints">Visualizza tutte le stampe</li>
+          </ul>
+        </li>
+        <li class="menu_item" id="materiali">
+          Materiali
+          <ul class="sub_menu">
+            <li class="sub_menu_item" id="insert_material">Inserisci nuovo materiale</li>
+            <li class="sub_menu_item" id="insert_class">Inserisci nuova classe di materiali</li>
+            <li class="sub_menu_item" id="show_materials">Visualizza materiali</li>
+            <li class="sub_menu_item" id="show_classes">Visualizza classi di materiali</li>
+          </ul>
+        </li>
+        <li class="menu_item" id="plastiche">
+          Plastiche
+          <ul class="sub_menu">
+            <li class="sub_menu_item" id="insert_filament">Inserisci nuovo filamento</li>
+            <li class="sub_menu_item" id="insert_plastic">Inserisci nuova plastica</li>
+            <li class="sub_menu_item" id="show_filaments">Visualizza filamenti</li>
+          </ul>
+        </li>
+        <li class="menu_item" id="manager">
+          Admin
+          <ul class="sub_menu">
+              <li class="sub_menu_item" id="insert_type">Inserisci nuovo tipo di lavorazione</li>
+              <li class="sub_menu_item" id="insert_admin">Inserisci nuovo admin</li>
+          </ul>
+        </li>
       </ul>
     </nav>
 </div>
 <div id="user_input">
-  <form action="" method="POST">
-    <select id="select_richiedenti" name="richiedenti">
-      <option value="">Seleziona richiedente</option>
-    </select> 
-  </form>
+
 </div>
 <div id="result">
 

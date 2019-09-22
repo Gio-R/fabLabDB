@@ -1,5 +1,16 @@
+/*
+Colors:
+  base: #d30068, complement
+  background: #c2f56e light light green
+  focus button: #aff53d light green
+  font button: #5f9900 dark dark green
+  shadow1/wave2: #e93a90 light red
+  wave1: #e969a8 ligh light red
+  error: #890043 dark dark red
+*/
+
 body {
-  background-color: #b8ffb8;
+  background-color: #c2f56e;
   font-family: 'Asap', sans-serif;
 }
 #login_form {
@@ -13,7 +24,7 @@ body {
   width: 40%;
   transform: translate(-50%, -50%);
   transition: transform 300ms, box-shadow 300ms;
-  box-shadow: 3px 3px 3px #ff7d7d;
+  box-shadow: 3px 3px 3px #e93a90;
 }
 #login_form::before, #login_form::after {
   content: '';
@@ -29,13 +40,13 @@ body {
 #login_form::before {
   left: 40%;
   bottom: -130%;
-  background-color: rgba(255, 184, 184, 0.15);
+  background-color: rgba(233, 58, 144, 0.15);
   animation: waves 6s infinite linear;
 }
 #login_form::after {
   left: 35%;
   bottom: -125%;
-  background-color: rgba(255, 125, 125, 0.2);
+  background-color: rgba(233, 105, 168, 0.2);
   animation: waves 7s infinite;
 }
 input {
@@ -53,7 +64,7 @@ input {
 button {
   font-family: 'Asap', sans-serif;
   cursor: pointer;
-  color: #26a929;
+  color: #5f9900;
   font-size: 16px;
   text-transform: uppercase;
   width: auto;
@@ -62,13 +73,13 @@ button {
   margin-top: 10px;
   margin-left: -5px;
   border-radius: 5px;
-  background-color: #b8ffb8;
+  background-color: #c2f56e;
 }
 button:hover {
-  background-color: #7dff7d;
+  background-color: #aff53d;
 }
 #login_error {
-  color: #a62929;
+  color: #890043;
   width: 100%;
   border: 0;
   padding: 10px 0;
