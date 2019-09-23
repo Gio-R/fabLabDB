@@ -17,8 +17,6 @@
             <li class="sub_menu_item" id="insert_person">Inserisci anagrafica</li>
             <li class="sub_menu_item" id="modify_person">Modifica stato persona</li>
             <li class="sub_menu_item" id="show_people">Visualizza anagrafiche</li>
-            <li class="sub_menu_item" id="show_cut_operators">Visualizza operatori intagliatrice</li>
-            <li class="sub_menu_item" id="show_print_operators">Visualizza operatori stampante</li>
           </ul>
         </li>
         <li class="menu_item" id="intagli">
@@ -71,10 +69,11 @@
     </nav>
 </div>
 <div id="user_input">
-
+  <form class="hidden hideable" id="input_form" method="POST" enctype="multipart/form-data"></form>
 </div>
 <div id="result">
-
+  <form class="hidden hideable" id="filters_form" method="POST" enctype="multipart/form-data"></form>
+  <ul class="hidden hideable" id="result_list"></ul>
 </div>
 
 </body>

@@ -11,6 +11,7 @@ Colors:
   menu background: #e969a8 ligh light red
   menu text: #890043 dark dark red
 */
+@import url('https://fonts.googleapis.com/css?family=Asap&display=swap');
 
 body {
 	background-color: #c2f56e;
@@ -85,7 +86,11 @@ body {
   width: 80%;
 }
 
-.input_form {
+#input_form.hidden {
+  display: none;
+}
+
+#input_form {
   overflow: hidden;
   background-color: white;
   padding: 10px 20px 30px 30px;
@@ -93,7 +98,7 @@ body {
   transition: transform 300ms, box-shadow 300ms;
   box-shadow: 3px 3px 3px #e93a90;
 }
-input {
+input[type="text"], input[type="password"] {
   font-family: 'Asap', sans-serif;
   display: block;
 	border-radius: 5px;
@@ -105,7 +110,7 @@ input {
   padding: 10px 10px;
   margin: 15px -10px;
 }
-input:focus {
+input[type="text"]:focus, input[type="password"]:focus {
 	border: 1px solid #c2f56e;
 }
 button {
@@ -134,3 +139,68 @@ button:hover {
   margin-left: -5px;
   margin-bottom: -15px;
 }
+.ok {
+  color: #5f9900;
+  width: 100%;
+  border: 0;
+  padding: 10px 0;
+  margin-top: 10px;
+  margin-left: -5px;
+  margin-bottom: -15px;
+}
+
+#result {
+  margin: 10px;
+}
+
+#filters_form.hidden {
+  display: none;
+}
+
+#filters_form {
+  float: left;
+  clear: none;
+  top: 50%;
+  padding: 10px 10px 10px 10px;
+}
+
+input[type=radio] {
+  float: left;
+  clear: none;
+}
+
+label {
+  float: left;
+  display: block;
+  clear: none;
+}
+
+#result_list.hidden {
+  display: none;
+}
+
+#result_list {
+  overflow: hidden;
+  background-color: white;
+  padding: 10px 10px 10px 10px;
+  border-radius: 10px;
+  top: 50%;
+  transition: transform 300ms, box-shadow 300ms;
+  box-shadow: 3px 3px 3px #e93a90;
+  text-align: center;
+}
+
+#result_elem.hidden{
+  display: none;
+}
+
+.result_elem {
+  font-family: 'Asap', sans-serif;
+  list-style: none;
+  font-size: 16px;
+  color: #142114;
+  margin-top: 10px;
+  margin-bottom: 5px;
+  border-bottom: 1px solid #c2f56e;
+}
+
