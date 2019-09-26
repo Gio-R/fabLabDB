@@ -158,21 +158,19 @@ button:hover {
 }
 
 #filters_form {
-  float: left;
-  clear: none;
-  top: 50%;
+  display: inline-block;
   padding: 10px 10px 10px 10px;
+  box-sizing: border-box;
+  width: 30%;
+  vertical-align: middle;
 }
 
 input[type=radio] {
-  float: left;
-  clear: none;
+  display: inline-block;
 }
 
 label {
-  float: left;
-  display: block;
-  clear: none;
+  display: inline-block;
 }
 
 #result_list.hidden {
@@ -184,10 +182,12 @@ label {
   background-color: white;
   padding: 10px 10px 10px 10px;
   border-radius: 10px;
-  top: 50%;
+  display: inline-block;
+  width: 68%;
   transition: transform 300ms, box-shadow 300ms;
   box-shadow: 3px 3px 3px #e93a90;
   text-align: center;
+  vertical-align: middle;
 }
 
 #result_elem.hidden{

@@ -3,6 +3,7 @@ window.onload = function() {
     document.getElementById("show_people").onclick = () => showPeople();
 }
 
+/* creates the form and sends the data to insert a new person in the database */
 function insertPerson() {
     clearPage();
     var form = document.getElementById("input_form");
@@ -20,16 +21,21 @@ function insertPerson() {
     button.onclick = () => sendInsertData("input_form", "insert_person");
 }
 
+/* creates the list to show the people in the database, with the appropriate filters */
 function showPeople() {
     clearPage();
     var form = document.getElementById("filters_form");
     form.classList.remove("hidden");
-    // TODO: apply filters
-    createFiltersCheckBoxes(form, ["partners", "Soci"], ["cutters", "Operatori intagliatrice"], ["printers", "Operatori stampante"]);
+    createFiltersCheckBoxes(form, "people_type", ["all", "Tutti", "people"], ["partners", "Soci", "partners"], ["cutters", "Operatori intagliatrice", "cutterOperators"], ["printers", "Operatori stampante", "printerOperators"]);
+    setList("people");
+}
+
+/* sets the content of the "result_list" element with the results from the given route */
+function setList(route) {
     var resultDiv = document.getElementById("result");
     var resultList = document.getElementById("result_list");
     resultList.classList.remove("hidden");
-    fetch(window.location.protocol + "//" + window.location.host.toString() + "/" + "people").then(function(response) {
+    fetch(window.location.protocol + "//" + window.location.host.toString() + "/" + route).then(function(response) {
         if (response.ok) {
             response.json().then(jsonResponse => {
                 if (checkIfJsonIsError(jsonResponse) && jsonResponse["response"]["code"] != "200") {
@@ -38,6 +44,7 @@ function showPeople() {
                     error.classList.add("error");
                     resultDiv.appendChild(error);
                 } else if (!checkIfJsonIsError(jsonResponse)) {
+                    result_list.innerHTML = "";
                     for (const index in jsonResponse) {
                         var listElem = document.createElement("li");
                         var person = jsonResponse[index];
@@ -48,9 +55,10 @@ function showPeople() {
                 }
             });
         }
-    });        
+    });
 }
 
+/* clears the page */
 function clearPage() {
     var hideableElements = document.getElementsByClassName("hideable");
     for (var i = 0; i < hideableElements.length; i++) {
@@ -61,13 +69,15 @@ function clearPage() {
     }
 }
 
-function createFiltersCheckBoxes(form, ...checkBoxes) {
+/* creates a variable number of checkboxes into the form, with [name, label, route] properties */
+function createFiltersCheckBoxes(form, name, ...checkBoxes) {
     checkBoxes.forEach(box => {
         var input = document.createElement("input");
         var label = document.createElement("label");
         input.type = "radio";
-        input.name = "radio_" + form.id;
+        input.name = name;
         input.id = box[0];
+        input.onclick = () => { if (input.checked) { setList(box[2]); } };
         label.for = input.id;
         label.innerHTML = box[1];
         form.appendChild(input);
@@ -76,6 +86,7 @@ function createFiltersCheckBoxes(form, ...checkBoxes) {
     });
 }
 
+/* sends to the said route the content of the given form, giving a visual notice of the result of the operation */
 function sendInsertData(formId, route) {
     var form = document.getElementById(formId);
     var fd = new FormData(form);
@@ -110,6 +121,7 @@ function sendInsertData(formId, route) {
     });
 }
 
+/* creates a text input, with the given name and placeholder */
 function createTextInput(name, placeholder) {
     var input = document.createElement("input");
     input.type = "text";
