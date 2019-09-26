@@ -499,20 +499,36 @@ assignFilament pCode fCode =
 -- |Complete a print
 completePrint :: Int -> Day -> Double -> Scientific -> Scientific -> (Connection -> IO (Either SqlError ()))
 completePrint pCode deliveryDate workTime total materials =
-  \conn ->
-    try
-      $ runBeam conn
-      $ runUpdate
-      $ update (_stampe fabLabDB)
-          ( \s ->
-              mconcat
-                [ _printDataConsegna s <-. val_ (Just deliveryDate),
-                  _printCostoMateriali s <-. val_ (Just materials),
-                  _printCostoTotale s <-. val_ (Just total),
-                  _printTempo s <-. val_ (Just workTime)
-                  ]
-            )
-          (\s -> _printCodiceStampa s ==. val_ pCode)
+  \conn -> do
+    completeResult <-
+      try
+        $ runBeam conn
+        $ runUpdate
+        $ update (_stampe fabLabDB)
+            ( \s ->
+                mconcat
+                  [ _printDataConsegna s <-. val_ (Just deliveryDate),
+                    _printCostoMateriali s <-. val_ (Just materials),
+                    _printCostoTotale s <-. val_ (Just total),
+                    _printTempo s <-. val_ (Just workTime)
+                    ]
+              )
+            (\s -> _printCodiceStampa s ==. val_ pCode)
+    case completeResult of
+      Left ex -> return $ Left ex
+      Right () -> do
+        maybePrint <- selectPrintFromCode pCode conn
+        case maybePrint of
+          Left ex -> return $ Left ex
+          Right Nothing -> return $ Left $ SqlError "" NonfatalError "Inconsistent state: a print existed, and then no more!" "" ""
+          Right (Just print) ->
+            let (PersonId cf) = _printCfRichiedente print
+             in try
+                  $ runBeam conn
+                  $ runUpdate
+                  $ update (_persone fabLabDB)
+                      (\p -> _personSpesaTotale p <-. (current_ (_personSpesaTotale p) + (val_ total)))
+                      (\p -> _personCf p ==. val_ cf)
 
 -- cuts queries
 -- |Select the cut with the given code in the database (should be 0 or 1)
@@ -601,17 +617,33 @@ assignProcessing cCode pCode =
 -- |Complete a cut
 completeCut :: Int -> Day -> Double -> Scientific -> Scientific -> (Connection -> IO (Either SqlError ()))
 completeCut code deliveryDate workTime total materials =
-  \conn ->
-    try
-      $ runBeam conn
-      $ runUpdate
-      $ update (_intagli fabLabDB)
-          ( \c ->
-              mconcat
-                [ _cutDataConsegna c <-. val_ (Just deliveryDate),
-                  _cutCostoTotale c <-. val_ (Just total),
-                  _cutCostoMateriali c <-. val_ (Just materials),
-                  _cutTempo c <-. val_ (Just workTime)
-                  ]
-            )
-          (\c -> _cutCodiceIntaglio c ==. val_ code)
+  \conn -> do
+    completeResult <-
+      try
+        $ runBeam conn
+        $ runUpdate
+        $ update (_intagli fabLabDB)
+            ( \s ->
+                mconcat
+                  [ _cutDataConsegna s <-. val_ (Just deliveryDate),
+                    _cutCostoMateriali s <-. val_ (Just materials),
+                    _cutCostoTotale s <-. val_ (Just total),
+                    _cutTempo s <-. val_ (Just workTime)
+                    ]
+              )
+            (\s -> _cutCodiceIntaglio s ==. val_ code)
+    case completeResult of
+      Left ex -> return $ Left ex
+      Right () -> do
+        maybeCut <- selectCutFromCode code conn
+        case maybeCut of
+          Left ex -> return $ Left ex
+          Right Nothing -> return $ Left $ SqlError "" NonfatalError "Inconsistent state: a cut existed, and then no more!" "" ""
+          Right (Just cut) ->
+            let (PersonId cf) = _cutCfRichiedente cut
+             in try
+                  $ runBeam conn
+                  $ runUpdate
+                  $ update (_persone fabLabDB)
+                      (\p -> _personSpesaTotale p <-. (current_ (_personSpesaTotale p) + (val_ total)))
+                      (\p -> _personCf p ==. val_ cf)
