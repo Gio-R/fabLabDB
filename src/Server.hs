@@ -197,9 +197,11 @@ executeModifyQueryAndSendResult query = do
     Left ex -> messageJson 500 $ decodeUtf8 $ sqlErrorMsg ex
     Right () -> messageJson 200 "Operazione riuscita"
 
+-- |Checks if a list of Maybe contains all Just values or not
 testParameters :: [Maybe a] -> Bool
 testParameters = (Prelude.all id) . (fmap isJust)
 
+-- |Converts a String to a Bool, with "true", "True" and "TRUE" corresponding to True
 toBool :: String -> Bool
 toBool = flip elem ["true", "True", "TRUE"]
 
@@ -426,6 +428,8 @@ app = do
           else messageJson 422 "Parametro mancante"
       get "people" $ do
         executeQueryListAndSendResult selectAllPeople
+      get "partners" $ do
+        executeQueryListAndSendResult selectAllPartners
       get "cutterOperators" $ do
         executeQueryListAndSendResult selectAllLaserCutterOperators
       get "printerOperators" $ do

@@ -100,6 +100,10 @@ prepareName = toTitle . pack
 selectAllPeople :: Connection -> IO (Either SqlError [Person])
 selectAllPeople = genericSelectList _persone Nothing
 
+-- |Select all partners in the database
+selectAllPartners :: Connection -> IO (Either SqlError [Person])
+selectAllPartners = genericSelectList _persone $ Just (\p -> _personSocio p ==. (val_ True))
+
 -- |Select all laser cutter operators in the database
 selectAllLaserCutterOperators :: Connection -> IO (Either SqlError [Person])
 selectAllLaserCutterOperators =
