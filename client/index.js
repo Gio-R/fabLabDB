@@ -27,31 +27,40 @@ function showPeople() {
     var form = document.getElementById("filters_form");
     form.classList.remove("hidden");
     createFiltersCheckBoxes(form, "people_type", ["all", "Tutti", "people"], ["partners", "Soci", "partners"], ["cutters", "Operatori intagliatrice", "cutterOperators"], ["printers", "Operatori stampante", "printerOperators"]);
-    setList("people");
+    setTable("people");
 }
 
-/* sets the content of the "result_list" element with the results from the given route */
-function setList(route) {
-    var resultDiv = document.getElementById("result");
-    var resultList = document.getElementById("result_list");
-    resultList.classList.remove("hidden");
+/* sets the content of the "result_area" element with the results from the given route */
+function setTable(route) {
+    var resultDiv = document.getElementById("result_area");
     fetch(window.location.protocol + "//" + window.location.host.toString() + "/" + route).then(function(response) {
         if (response.ok) {
             response.json().then(jsonResponse => {
                 if (checkIfJsonIsError(jsonResponse) && jsonResponse["response"]["code"] != "200") {
+                    showClearElem("result_area");
                     var error = document.createElement("P");
                     error.innerHTML = jsonResponse["response"]["message"];
                     error.classList.add("error");
                     resultDiv.appendChild(error);
                 } else if (!checkIfJsonIsError(jsonResponse)) {
-                    result_list.innerHTML = "";
+                    showClearElem("result_area");
+                    var resultTable = createTable("result_table", "headers", ["cf", "Codice fiscale"], ["name", "Nome"], ["surname", "Cognome"], ["expense", "Spesa totale"]);
                     for (const index in jsonResponse) {
-                        var listElem = document.createElement("li");
+                        var listElem = document.createElement("tr");
                         var person = jsonResponse[index];
                         listElem.classList.add("result_elem");
-                        listElem.innerHTML = person._personNome + " " + person._personCognome + " -- " + person._personCf;
-                        resultList.appendChild(listElem);
+                        var nameCell = document.createElement("td");
+                        nameCell.innerHTML = person._personNome;
+                        var surnameCell = document.createElement("td");
+                        surnameCell.innerHTML = person._personCognome;
+                        var cfCell = document.createElement("td");
+                        cfCell.innerHTML = person._personCf;
+                        var expenseCell = document.createElement("td");
+                        expenseCell.innerHTML = person._personSpesaTotale + " €";
+                        listElem.append(cfCell, nameCell, surnameCell, expenseCell);
+                        resultTable.appendChild(listElem);
                     }
+                    resultDiv.appendChild(resultTable);
                 }
             });
         }
@@ -69,6 +78,15 @@ function clearPage() {
     }
 }
 
+/* makes visible the element with elemId, as if it was created anew */
+function showClearElem(elemId) {
+    var elem = document.getElementById(elemId);
+    while(elem.firstChild) {
+        elem.removeChild(elem.firstChild);
+    }
+    elem.classList.remove("hidden");
+}
+
 /* creates a variable number of checkboxes into the form, with [name, label, route] properties */
 function createFiltersCheckBoxes(form, name, ...checkBoxes) {
     checkBoxes.forEach(box => {
@@ -77,7 +95,7 @@ function createFiltersCheckBoxes(form, name, ...checkBoxes) {
         input.type = "radio";
         input.name = name;
         input.id = box[0];
-        input.onclick = () => { if (input.checked) { setList(box[2]); } };
+        input.onclick = () => { if (input.checked) { setTable(box[2]); } };
         label.for = input.id;
         label.innerHTML = box[1];
         form.appendChild(input);
@@ -128,6 +146,22 @@ function createTextInput(name, placeholder) {
     input.name = name;
     input.placeholder = placeholder;
     return input;
+}
+
+/* creates a table with the given id, id of the headers and columns [headerId, name] */
+function createTable(tableId, headersId, ...headers) {
+    var resultTable = document.createElement("table");
+    resultTable.id = tableId;
+    var header = document.createElement("tr")
+    header.id = headersId;
+    resultTable.appendChild(header);
+    headers.forEach(h => {
+        var th = document.createElement("th");
+        th.id = h[0];
+        th.innerHTML = h[1];
+        header.appendChild(th);
+    });
+    return resultTable;
 }
 
 function setJsonData(url, selectId, setter) {
