@@ -205,6 +205,10 @@ testParameters = (Prelude.all id) . (fmap isJust)
 toBool :: String -> Bool
 toBool = flip elem ["true", "True", "TRUE"]
 
+-- |Sends a message signalling a missing parameter
+missingParameter :: MonadIO m => ActionCtxT ctx m b
+missingParameter = messageJson 422 "Parametro mancante"
+
 -- server functions
 runServer :: ApiCfg -> IO ()
 runServer cfg =
@@ -233,7 +237,7 @@ app = do
           loginAction
             (fromJust maybeUser)
             (fromJust maybePswd)
-        else messageJson 422 "Parametro mancante"
+        else missingParameter
     get "login.js"
       $ file "application/javascript"
       $ getClientFilePath "login.js"
@@ -255,7 +259,7 @@ app = do
                   (fromJust maybeCf)
                   (fromJust maybeName)
                   (fromJust maybeSurname)
-          else messageJson 422 "Parametro mancante"
+          else missingParameter
       post "modify_person" $ do
         maybeCf <- param "cf"
         maybePartner <- param "partner"
@@ -269,7 +273,7 @@ app = do
                   (toBool $ fromJust maybePartner)
                   (toBool $ fromJust maybeCutter)
                   (toBool $ fromJust maybePrinter)
-          else messageJson 422 "Parametro mancante"
+          else missingParameter
       post "insert_class" $ do
         maybeCode <- param "code"
         maybeName <- param "name"
@@ -279,7 +283,7 @@ app = do
               $ insertMaterialsClass
                   (fromJust maybeCode)
                   (fromJust maybeName)
-          else messageJson 422 "Parametro mancante"
+          else missingParameter
       post "insert_material" $ do
         maybeCode <- param "code"
         maybeClass <- param "class"
@@ -295,7 +299,12 @@ app = do
                   (fromJust maybeName)
                   (read $ fromJust maybeWidth :: Double)
                   (fromJust maybeDescr)
-          else messageJson 422 "Parametro mancante"
+          else missingParameter
+      post "select_materials" $ do
+        maybeCCode <- param "class_code"
+        case maybeCCode of
+          Nothing -> missingParameter
+          Just cCode -> executeQueryListAndSendResult $ selectMaterialsByClass cCode
       post "insert_processing" $ do
         maybeTypeCode <- param "type"
         maybeMaterialCode <- param "material"
@@ -313,7 +322,7 @@ app = do
                   (read $ fromJust maybeMinP :: Int)
                   (read $ fromJust maybeSpeed :: Int)
                   (fromJust maybeDescr)
-          else messageJson 422 "Parametro mancante"
+          else missingParameter
       post "insert_plastic" $ do
         maybeCode <- param "code"
         maybeName <- param "name"
@@ -325,7 +334,7 @@ app = do
                   (fromJust maybeCode)
                   (fromJust maybeName)
                   (fromJust maybeDescr)
-          else messageJson 422 "Parametro mancante"
+          else missingParameter
       post "insert_filament" $ do
         maybeCode <- param "code"
         maybePlastic <- param "plastic"
@@ -339,7 +348,12 @@ app = do
                   (fromJust maybePlastic)
                   (fromJust maybeBrand)
                   (fromJust maybeColor)
-          else messageJson 422 "Parametro mancante"
+          else missingParameter
+      post "select_filaments" $ do
+        maybePCode <- param "plastic_code"
+        case maybePCode of
+          Nothing -> missingParameter
+          Just code -> executeQueryListAndSendResult $ selectFilamentsByPlastic code
       post "insert_print" $ do
         maybeCf <- param "client"
         maybeDate <- param "date"
@@ -351,7 +365,7 @@ app = do
                   (fromJust maybeCf)
                   (read $ fromJust maybeDate :: Day)
                   (fromJust maybeDescr)
-          else messageJson 422 "Parametro mancante"
+          else missingParameter
       post "assign_print_operator" $ do
         maybeCf <- param "operator"
         maybeCode <- param "print"
@@ -361,7 +375,7 @@ app = do
               $ assignPrint
                   (read $ fromJust maybeCode :: Int)
                   (fromJust maybeCf)
-          else messageJson 422 "Parametro mancante"
+          else missingParameter
       post "assign_print_printer" $ do
         maybeCodePrinter <- param "printer"
         maybeCode <- param "print"
@@ -371,7 +385,7 @@ app = do
               $ assignPrinter
                   (fromJust maybeCodePrinter)
                   (read $ fromJust maybeCode :: Int)
-          else messageJson 422 "Parametro mancante"
+          else missingParameter
       post "modify_print" $ do
         maybePrint <- param "print"
         maybeDate <- param "date"
@@ -387,7 +401,7 @@ app = do
                   (read $ fromJust maybeTime :: Double)
                   (read $ fromJust maybeTotal :: Scientific)                  
                   (read $ fromJust maybeMaterials :: Scientific)
-          else messageJson 422 "Parametro mancante"
+          else missingParameter
       post "insert_cut" $ do
         maybeCf <- param "client"
         maybeDate <- param "date"
@@ -399,7 +413,7 @@ app = do
                   (fromJust maybeCf)
                   (read $ fromJust maybeDate :: Day)
                   (fromJust maybeDescr)
-          else messageJson 422 "Parametro mancante"
+          else missingParameter
       post "assign_cut_operator" $ do
         maybeCf <- param "operator"
         maybeCode <- param "print"
@@ -409,7 +423,7 @@ app = do
               $ assignCut
                   (read $ fromJust maybeCode :: Int)
                   (fromJust maybeCf)
-          else messageJson 422 "Parametro mancante"
+          else missingParameter
       post "modify_cut" $  do
         maybeCut <- param "cut"
         maybeDate <- param "date"
@@ -425,7 +439,7 @@ app = do
                   (read $ fromJust maybeTime :: Double)
                   (read $ fromJust maybeTotal :: Scientific)                  
                   (read $ fromJust maybeMaterials :: Scientific)
-          else messageJson 422 "Parametro mancante"
+          else missingParameter
       get "people" $ do
         executeQueryListAndSendResult selectAllPeople
       get "partners" $ do
@@ -481,7 +495,7 @@ app = do
                     (fromJust maybeCode)
                     (fromJust maybeName)
                     (fromJust maybeDescr)
-            else messageJson 422 "Parametro mancante"
+            else missingParameter
         post "insert_printer" $ do
           maybeCode <- param "code"
           maybeBrand <- param "brand"
@@ -495,7 +509,7 @@ app = do
                     (fromJust maybeBrand)
                     (fromJust maybeDescr)
                     (fromJust maybeDescr)
-            else messageJson 422 "Parametro mancante"
+            else missingParameter
         post "insert_user" $ do
           maybeUser <- param "username"
           maybePswd <- param "password"
