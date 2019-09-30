@@ -1,8 +1,22 @@
 window.onload = function() {
+    /* people */
     document.getElementById("insert_person").onclick = () => insertPerson();
     document.getElementById("show_people").onclick = () => showPeople();
-    document.getElementById("modify_person").onclick = () => modifyPeople();
+    document.getElementById("modify_person").onclick = () => modifyPerson();
+    /* cuts */
+    /* prints */
+    /* materials */
+    /* plastics */
+    document.getElementById("insert_plastic").onclick = () => insertPlastic();
+    document.getElementById("show_plastics").onclick = () => showPlastics();
+    /* admins */
 }
+
+/*
+----------------------------------------------------------------------------------------
+PEOPLE FUNCTIONS
+----------------------------------------------------------------------------------------
+*/
 
 /* creates the form and sends the data to insert a new person in the database */
 function insertPerson() {
@@ -27,12 +41,30 @@ function showPeople() {
     clearPage();
     var form = document.getElementById("filters_form");
     form.classList.remove("hidden");
+    document.getElementById("filters_form").classList.remove("hidden");
     createFiltersRadioButtons(form, "people_type", ["all", "Tutti", "people"], ["partners", "Soci", "partners"], ["cutters", "Operatori intagliatrice", "cutterOperators"], ["printers", "Operatori stampante", "printerOperators"]);
-    setTable("people");
+    var resultTable = createTable("result_table", "headers", ["cf", "Codice fiscale"], ["name", "Nome"], ["surname", "Cognome"], ["expense", "Spesa totale"]);
+    setTable("people", resultTable, (jsonResponse, table) => {
+        for (const index in jsonResponse) {
+            var listElem = document.createElement("tr");
+            var person = jsonResponse[index];
+            listElem.classList.add("result_elem");
+            var nameCell = document.createElement("td");
+            nameCell.innerHTML = person._personNome;
+            var surnameCell = document.createElement("td");
+            surnameCell.innerHTML = person._personCognome;
+            var cfCell = document.createElement("td");
+            cfCell.innerHTML = person._personCf;
+            var expenseCell = document.createElement("td");
+            expenseCell.innerHTML = person._personSpesaTotale + " €";
+            listElem.append(cfCell, nameCell, surnameCell, expenseCell);
+            table.appendChild(listElem);
+        }
+    });
 }
 
 /* show the appropriate forms to modify a person */
-function modifyPeople() {
+function modifyPerson() {
     clearPage();
     var form = document.getElementById("input_form");
     showClearElem(form.id);
@@ -74,15 +106,102 @@ function modifyPeople() {
     });
 }
 
+/*
+----------------------------------------------------------------------------------------
+CUTS FUNCTIONS
+----------------------------------------------------------------------------------------
+*/
+
+/*
+----------------------------------------------------------------------------------------
+PRINTS FUNCTIONS
+----------------------------------------------------------------------------------------
+*/
+
+/*
+----------------------------------------------------------------------------------------
+MATERIALS FUNCTIONS
+----------------------------------------------------------------------------------------
+*/
+
+/*
+----------------------------------------------------------------------------------------
+PLASTICS FUNCTIONS
+----------------------------------------------------------------------------------------
+*/
+
+/* creates the form and sends the data to insert a new plastic in the database */
+function insertPlastic() {
+    clearPage();
+    var form = document.getElementById("input_form");
+    showClearElem(form.id);
+    var plasticCode = createTextInput("code", "Codice plastica (3 caratteri)");
+    var nameInput = createTextInput("name", "Nome");
+    var descriptionInput = createTextInput("description", "Descrizione");
+    var button = document.createElement("button");
+    button.type = "button";
+    button.innerHTML = "Inserisci";
+    form.appendChild(plasticCode);
+    form.appendChild(nameInput);
+    form.appendChild(descriptionInput);
+    form.appendChild(button);
+    button.onclick = () => sendFormData("input_form", "insert_plastic");
+}
+
+/* creates the form and sends the data to insert a new filament in the database */
+function insertFilament() {
+
+}
+
+/* shows the filaments, giving the possibility to select the plastic */
+function showFilaments() {
+
+}
+
+/* shows the plastics in the database */
+function showPlastics() {
+    clearPage();
+    var form = document.getElementById("filters_form");
+    form.classList.remove("hidden");
+    document.getElementById("filters_form").classList.add("hidden");
+    var resultTable = createTable("result_table", "headers", ["code", "Codice"], ["name", "Nome"], ["description", "Descrizione"]);
+    setTable("plastics", resultTable, (jsonResponse, table) => {
+        for (const index in jsonResponse) {
+            var listElem = document.createElement("tr");
+            var plastic = jsonResponse[index];
+            listElem.classList.add("result_elem");
+            var codeCell = document.createElement("td");
+            codeCell.innerHTML = plastic._plasticCodicePlastica;
+            var nameCell = document.createElement("td");
+            nameCell.innerHTML = plastic._plasticNome;
+            var descrCell = document.createElement("td");
+            descrCell.innerHTML = plastic._plasticDescrizione;
+            listElem.append(codeCell, nameCell, descrCell);
+            table.appendChild(listElem);
+        }
+    });
+}
+
+/*
+----------------------------------------------------------------------------------------
+ADMIN FUNCTIONS
+----------------------------------------------------------------------------------------
+*/
+
+/*
+----------------------------------------------------------------------------------------
+GENERAL FUNCTIONS
+----------------------------------------------------------------------------------------
+*/
+
 /* fetches data from the given route, and executes the given action */
 function fetchData(route, action) {
     fetch(window.location.protocol + "//" + window.location.host.toString() + "/" + route).then(action);
 }
 
-/* sets the content of the "result_area" element with the results from the given route */
-function setTable(route) {
+/* sets the content of the "result_area" element with the results from the given route inserted in the given table by the tableSetter */
+function setTable(route, table, tableSetter) {
     var resultDiv = document.getElementById("result_area");
-    fetchData()
     fetchData(route, function(response) {
         if (response.ok) {
             response.json().then(jsonResponse => {
@@ -94,23 +213,8 @@ function setTable(route) {
                     resultDiv.appendChild(error);
                 } else if (!checkIfJsonIsError(jsonResponse)) {
                     showClearElem("result_area");
-                    var resultTable = createTable("result_table", "headers", ["cf", "Codice fiscale"], ["name", "Nome"], ["surname", "Cognome"], ["expense", "Spesa totale"]);
-                    for (const index in jsonResponse) {
-                        var listElem = document.createElement("tr");
-                        var person = jsonResponse[index];
-                        listElem.classList.add("result_elem");
-                        var nameCell = document.createElement("td");
-                        nameCell.innerHTML = person._personNome;
-                        var surnameCell = document.createElement("td");
-                        surnameCell.innerHTML = person._personCognome;
-                        var cfCell = document.createElement("td");
-                        cfCell.innerHTML = person._personCf;
-                        var expenseCell = document.createElement("td");
-                        expenseCell.innerHTML = person._personSpesaTotale + " €";
-                        listElem.append(cfCell, nameCell, surnameCell, expenseCell);
-                        resultTable.appendChild(listElem);
-                    }
-                    resultDiv.appendChild(resultTable);
+                    tableSetter(jsonResponse, table);
+                    resultDiv.appendChild(table);
                 }
             });
         }

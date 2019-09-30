@@ -189,24 +189,26 @@ label {
   text-align: center;
   vertical-align: middle;
 }
+#filters_form.hidden+#result_area {
+  width: 98%;
+}
 #result_table {
   width: 100%;
   line-height: 1.5em;
   border-spacing: 0;
   border-radius: 10px;
+  table-layout: fixed;
 }
 #result_elem.hidden{
   display: none;
 }
-#name, #surname, #expense {
-  width: 20%;
+th {
   background: #c2f56e;
 }
-#expense {
+th:last-of-type {
   border-top-right-radius: 10px;
 }
-th#cf {
-  width: 40%;
+th:first-of-type {
   background: #c2f56e;
   border-top-left-radius: 10px;
 }
