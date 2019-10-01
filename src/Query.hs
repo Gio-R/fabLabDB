@@ -364,7 +364,7 @@ insertFilament code plasticCode brand color =
           $ insert (_filamenti fabLabDB)
           $ insertValues
               [ Filament
-                  (prepareCode code)
+                  (prepareCode $ plasticCode ++ code)
                   (pk plastic)
                   (prepareName brand)
                   (prepareName color)
