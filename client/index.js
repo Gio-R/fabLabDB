@@ -43,10 +43,11 @@ function showPeople() {
     clearPage();
     var form = document.getElementById("filters_form");
     form.classList.remove("hidden");
-    document.getElementById("filters_form").classList.remove("hidden");
-    createFiltersRadioButtons(form, "people_type", ["all", "Tutti", "people"], ["partners", "Soci", "partners"], ["cutters", "Operatori intagliatrice", "cutterOperators"], ["printers", "Operatori stampante", "printerOperators"]);
     var resultTable = createTable("result_table", "headers", ["cf", "Codice fiscale"], ["name", "Nome"], ["surname", "Cognome"], ["expense", "Spesa totale"]);
-    setTable("people", resultTable, (jsonResponse, table) => {
+    document.getElementById("result_area").appendChild(resultTable);
+    var setter = (jsonResponse, table) => {
+        var body = table.getElementsByTagName("tbody")[0];
+        showClearElem(body.id);
         for (const index in jsonResponse) {
             var listElem = document.createElement("tr");
             var person = jsonResponse[index];
@@ -60,9 +61,11 @@ function showPeople() {
             var expenseCell = document.createElement("td");
             expenseCell.innerHTML = person._personSpesaTotale + " €";
             listElem.append(cfCell, nameCell, surnameCell, expenseCell);
-            table.appendChild(listElem);
+            body.appendChild(listElem);
         }
-    });
+    };
+    createFiltersRadioButtons(form, resultTable, setter, "people_type", ["all", "Tutti", "people"], ["partners", "Soci", "partners"], ["cutters", "Operatori intagliatrice", "cutterOperators"], ["printers", "Operatori stampante", "printerOperators"]);
+    setTable("people", resultTable, setter);
 }
 
 /* show the appropriate forms to modify a person */
@@ -193,23 +196,62 @@ function showFilaments() {
     clearPage();
     var form = document.getElementById("filters_form");
     form.classList.remove("hidden");
-    document.getElementById("filters_form").classList.add("hidden");
-    var resultTable = createTable("result_table", "headers", ["code", "Codice"], ["plastic", "Plastica"], ["brand", "Marca"], ["color", "Colore"]);
-    setTable("filaments", resultTable, (jsonResponse, table) => {
-        for (const index in jsonResponse) {
-            var listElem = document.createElement("tr");
-            var filament = jsonResponse[index];
-            listElem.classList.add("result_elem");
-            var codeCell = document.createElement("td");
-            codeCell.innerHTML = filament._filamentCodiceFilamento;
-            var plasticCell = document.createElement("td");
-            plasticCell.innerHTML = filament._filamentCodicePlastica;
-            var brandCell = document.createElement("td");
-            brandCell.innerHTML = filament._filamentMarca;
-            var colorCell = document.createElement("td");
-            colorCell.innerHTML = filament._filamentColore;
-            listElem.append(codeCell, plasticCell, brandCell, colorCell);
-            table.appendChild(listElem);
+    fetchData("plastics", response => {
+        if (response.ok) {
+            response.json().then(jsonResponse => {
+                if (checkIfJsonIsError(jsonResponse) && jsonResponse["response"]["code"] != "200") {
+                    var error = document.createElement("P");
+                    error.innerHTML = jsonResponse["response"]["message"];
+                    error.classList.add("error");
+                    form.appendChild(error);
+                } else if (!checkIfJsonIsError(jsonResponse)) {
+                    var list = document.createElement("select");
+                    list.name = "plastic_code";
+                    list.id = "plastic_select";
+                    var elem = document.createElement("option");
+                    elem.value = "all";
+                    elem.innerHTML = "Tutte le plastiche";
+                    list.appendChild(elem);
+                    form.appendChild(list);
+                    for (const index in jsonResponse) {
+                        elem = document.createElement("option");
+                        elem.value = jsonResponse[index]._plasticCodicePlastica;
+                        elem.innerHTML = jsonResponse[index]._plasticCodicePlastica + " -- " + jsonResponse[index]._plasticNome;
+                        list.appendChild(elem);
+                    }
+                    var resultTable = createTable("result_table", "headers", ["code", "Codice"], ["plastic", "Plastica"], ["brand", "Marca"], ["color", "Colore"]);
+                    var setter = (jsonResponse, table) => {
+                        var body = table.getElementsByTagName("tbody")[0];
+                        showClearElem(body.id);
+                        for (const index in jsonResponse) {
+                            var listElem = document.createElement("tr");
+                            var filament = jsonResponse[index];
+                            listElem.classList.add("result_elem");
+                            var codeCell = document.createElement("td");
+                            codeCell.innerHTML = filament._filamentCodiceFilamento;
+                            var plasticCell = document.createElement("td");
+                            plasticCell.innerHTML = filament._filamentCodicePlastica;
+                            var brandCell = document.createElement("td");
+                            brandCell.innerHTML = filament._filamentMarca;
+                            var colorCell = document.createElement("td");
+                            colorCell.innerHTML = filament._filamentColore;
+                            listElem.append(codeCell, plasticCell, brandCell, colorCell);
+                            body.appendChild(listElem);
+                        }
+                    };
+                    var changer = () => {
+                        if (list.value == "all") {
+                            setTable("filaments", resultTable, setter);
+                        } else {
+                            var filaments = useChosenData("filters_form", "select_filaments", data => {
+                                setTableFromData(data, resultTable, setter);
+                            });
+                        }
+                    };
+                    changer();
+                    list.onchange = () => changer();
+                }
+            });
         }
     });
 }
@@ -217,8 +259,6 @@ function showFilaments() {
 /* shows the plastics in the database */
 function showPlastics() {
     clearPage();
-    var form = document.getElementById("filters_form");
-    form.classList.remove("hidden");
     document.getElementById("filters_form").classList.add("hidden");
     var resultTable = createTable("result_table", "headers", ["code", "Codice"], ["name", "Nome"], ["description", "Descrizione"]);
     setTable("plastics", resultTable, (jsonResponse, table) => {
@@ -257,7 +297,6 @@ function fetchData(route, action) {
 
 /* sets the content of the "result_area" element with the results from the given route inserted in the given table by the tableSetter */
 function setTable(route, table, tableSetter) {
-    var resultDiv = document.getElementById("result_area");
     fetchData(route, function(response) {
         if (response.ok) {
             response.json().then(jsonResponse => {
@@ -268,13 +307,19 @@ function setTable(route, table, tableSetter) {
                     error.classList.add("error");
                     resultDiv.appendChild(error);
                 } else if (!checkIfJsonIsError(jsonResponse)) {
-                    showClearElem("result_area");
-                    tableSetter(jsonResponse, table);
-                    resultDiv.appendChild(table);
+                    setTableFromData(jsonResponse, table, tableSetter);
                 }
             });
         }
     });
+}
+
+/* sets the content of the "result_area" element with the given data, inserted in the given table by the tableSetter */
+function setTableFromData(data, table, tableSetter) {
+    var resultDiv = document.getElementById("result_area");
+    document.getElementById("result_area").classList.remove("hidden");
+    tableSetter(data, table);
+    resultDiv.appendChild(table);
 }
 
 /* clears the page */
@@ -291,21 +336,23 @@ function clearPage() {
 /* makes visible the element with elemId, as if it was created anew */
 function showClearElem(elemId) {
     var elem = document.getElementById(elemId);
-    while(elem.firstChild) {
-        elem.removeChild(elem.firstChild);
+    if (elem != null) {
+        while(elem.firstChild) {
+            elem.removeChild(elem.firstChild);
+        }
+        elem.classList.remove("hidden");
     }
-    elem.classList.remove("hidden");
 }
 
-/* creates a variable number of radio buttons into the form, with [name, label, route] properties */
-function createFiltersRadioButtons(form, name, ...radioButtons) {
+/* creates a variable number of radio buttons into the form, for the table with the given tableSetter, with [name, label, route] properties */
+function createFiltersRadioButtons(form, table, tableSetter, name, ...radioButtons) {
     radioButtons.forEach(button => {
         var input = document.createElement("input");
         var label = document.createElement("label");
         input.type = "radio";
         input.name = name;
         input.id = button[0];
-        input.onclick = () => { if (input.checked) { setTable(button[2]); } };
+        input.onclick = () => { if (input.checked) { setTable(button[2], table, tableSetter); } };
         label.for = input.id;
         label.innerHTML = button[1];
         form.appendChild(input);
@@ -415,6 +462,38 @@ function sendFormData(formId, route) {
     });
 }
 
+/* sends to the said route the content of the given form, doing something with the results */
+function useChosenData(formId, route, action) {
+    var form = document.getElementById(formId);
+    var fd = new FormData(form);
+    var post = {
+        method: "POST",
+        body: fd
+    };
+    var errors = form.getElementsByClassName("error");
+    while (errors.length > 0) {
+        errors.item(0).parentNode.removeChild(errors.item(0));
+    }
+    var oks = form.getElementsByClassName("ok");
+    while (oks.length > 0) {
+        oks.item(0).parentNode.removeChild(oks.item(0));
+    }
+    fetch(window.location.protocol + "//" + window.location.host.toString() + "/" + route, post).then(function(response) {
+        if (response.ok) {
+            response.json().then(jsonResponse => {
+                if (checkIfJsonIsError(jsonResponse)) {
+                    var error = document.createElement("P");
+                    error.innerHTML = jsonResponse["response"]["message"];
+                    error.classList.add("error");
+                    form.appendChild(error);
+                } else {
+                    action(jsonResponse);
+                }
+            });
+        }
+    });
+}
+
 /* creates a text input, with the given name and placeholder */
 function createTextInput(name, placeholder) {
     var input = document.createElement("input");
@@ -428,15 +507,20 @@ function createTextInput(name, placeholder) {
 function createTable(tableId, headersId, ...headers) {
     var resultTable = document.createElement("table");
     resultTable.id = tableId;
-    var header = document.createElement("tr")
+    var head = document.createElement("thead");
+    var body = document.createElement("tbody");
+    body.id = "table_body";
+    var header = document.createElement("tr");
+    head.appendChild(header);
     header.id = headersId;
-    resultTable.appendChild(header);
+    resultTable.appendChild(head);
     headers.forEach(h => {
         var th = document.createElement("th");
         th.id = h[0];
         th.innerHTML = h[1];
         header.appendChild(th);
     });
+    resultTable.appendChild(body);
     return resultTable;
 }
 
