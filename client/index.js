@@ -135,7 +135,41 @@ MATERIALS FUNCTIONS
 
 /* creates the form and sends the data to insert a new material into the database */
 function insertMaterial() {
-
+    clearPage();
+    var form = document.getElementById("input_form");
+    showClearElem(form.id);
+    fetchData("materials_classes", response => {
+        if (response.ok) {
+            response.json().then(jsonResponse => {
+                if (checkIfJsonIsError(jsonResponse) && jsonResponse["response"]["code"] != "200") {
+                    var error = document.createElement("P");
+                    error.innerHTML = jsonResponse["response"]["message"];
+                    error.classList.add("error");
+                    form.appendChild(error);
+                } else if (!checkIfJsonIsError(jsonResponse)) {
+                    var list = document.createElement("select");
+                    list.name = "class";
+                    list.id = "materials_classes_select";
+                    form.appendChild(list);
+                    for (const index in jsonResponse) {
+                        var elem = document.createElement("option");
+                        elem.value = jsonResponse[index]._materialsclassCodiceClasse;
+                        elem.innerHTML = jsonResponse[index]._materialsclassCodiceClasse + " -- " + jsonResponse[index]._materialsclassNome;
+                        list.appendChild(elem);
+                    }
+                    var materialCode = createTextInput("code", "Codice materiale (2 caratteri)");
+                    var nameInput = createTextInput("name", "Nome");
+                    var widthInput = createTextInput("width", "Spessore");
+                    var descrInput = createTextInput("description", "Descrizione");
+                    var okButton = document.createElement("button");
+                    okButton.type = "button";
+                    okButton.innerHTML = "Inserisci";
+                    okButton.onclick = () => sendFormData("input_form", "insert_material");
+                    form.append(materialCode, nameInput, widthInput, descrInput, okButton);
+                }
+            });
+        }
+    });
 }
 
 /* creates the form and sends the data to insert a new materials class into the database */
@@ -156,7 +190,69 @@ function insertClass() {
 
 /* shows the available materials */
 function showMaterials() {
-
+    clearPage();
+    var form = document.getElementById("filters_form");
+    form.classList.remove("hidden");
+    fetchData("materials_classes", response => {
+        if (response.ok) {
+            response.json().then(jsonResponse => {
+                if (checkIfJsonIsError(jsonResponse) && jsonResponse["response"]["code"] != "200") {
+                    var error = document.createElement("P");
+                    error.innerHTML = jsonResponse["response"]["message"];
+                    error.classList.add("error");
+                    form.appendChild(error);
+                } else if (!checkIfJsonIsError(jsonResponse)) {
+                    var list = document.createElement("select");
+                    list.name = "class_code";
+                    list.id = "class_select";
+                    var elem = document.createElement("option");
+                    elem.value = "all";
+                    elem.innerHTML = "Tutti i materiali";
+                    list.appendChild(elem);
+                    form.appendChild(list);
+                    for (const index in jsonResponse) {
+                        elem = document.createElement("option");
+                        elem.value = jsonResponse[index]._materialsclassCodiceClasse
+                        elem.innerHTML = jsonResponse[index]._materialsclassCodiceClasse + " -- " + jsonResponse[index]._materialsclassNome;
+                        list.appendChild(elem);
+                    }
+                    var resultTable = createTable("result_table", "headers", ["code", "Codice"], ["class", "Classe"], ["name", "Nome"], ["width", "Spessore"], ["description", "Descrizione"]);
+                    var setter = (jsonResponse, table) => {
+                        var body = table.getElementsByTagName("tbody")[0];
+                        showClearElem(body.id);
+                        for (const index in jsonResponse) {
+                            var listElem = document.createElement("tr");
+                            var material = jsonResponse[index];
+                            listElem.classList.add("result_elem");
+                            var codeCell = document.createElement("td");
+                            codeCell.innerHTML = material._materialCodiceMateriale;
+                            var classCell = document.createElement("td");
+                            classCell.innerHTML = material._materialCodiceClasse;
+                            var nameCell = document.createElement("td");
+                            nameCell.innerHTML = material._materialNome;
+                            var widthCell = document.createElement("td");
+                            widthCell.innerHTML = material._materialSpessore;
+                            var descrCell = document.createElement("td");
+                            descrCell.innerHTML = material._materialDescrizione;
+                            listElem.append(codeCell, classCell, nameCell, widthCell, descrCell);
+                            body.appendChild(listElem);
+                        }
+                    };
+                    var changer = () => {
+                        if (list.value == "all") {
+                            setTable("materials", resultTable, setter);
+                        } else {
+                            useChosenData("filters_form", "select_materials", data => {
+                                setTableFromData(data, resultTable, setter);
+                            });
+                        }
+                    };
+                    changer();
+                    list.onchange = () => changer();
+                }
+            });
+        }
+    });
 }
 
 /* shows the available materials classes */
@@ -293,7 +389,7 @@ function showFilaments() {
                         if (list.value == "all") {
                             setTable("filaments", resultTable, setter);
                         } else {
-                            var filaments = useChosenData("filters_form", "select_filaments", data => {
+                            useChosenData("filters_form", "select_filaments", data => {
                                 setTableFromData(data, resultTable, setter);
                             });
                         }
