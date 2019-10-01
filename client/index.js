@@ -8,7 +8,9 @@ window.onload = function() {
     /* materials */
     /* plastics */
     document.getElementById("insert_plastic").onclick = () => insertPlastic();
+    document.getElementById("insert_filament").onclick = () => insertFilament();
     document.getElementById("show_plastics").onclick = () => showPlastics();
+    document.getElementById("show_filaments").onclick = () => showFilaments();
     /* admins */
 }
 
@@ -68,7 +70,7 @@ function modifyPerson() {
     clearPage();
     var form = document.getElementById("input_form");
     showClearElem(form.id);
-    fetch(window.location.protocol + "//" + window.location.host.toString() + "/people").then(response => {
+    fetchData("people", response => {
         if (response.ok) {
             response.json().then(jsonResponse => {
                 if (checkIfJsonIsError(jsonResponse) && jsonResponse["response"]["code"] != "200") {
@@ -150,12 +152,66 @@ function insertPlastic() {
 
 /* creates the form and sends the data to insert a new filament in the database */
 function insertFilament() {
-
+    clearPage();
+    var form = document.getElementById("input_form");
+    showClearElem(form.id);
+    fetchData("plastics", response => {
+        if (response.ok) {
+            response.json().then(jsonResponse => {
+                if (checkIfJsonIsError(jsonResponse) && jsonResponse["response"]["code"] != "200") {
+                    var error = document.createElement("P");
+                    error.innerHTML = jsonResponse["response"]["message"];
+                    error.classList.add("error");
+                    form.appendChild(error);
+                } else if (!checkIfJsonIsError(jsonResponse)) {
+                    var list = document.createElement("select");
+                    list.name = "plastic";
+                    list.id = "plastic_select";
+                    form.appendChild(list);
+                    for (const index in jsonResponse) {
+                        var elem = document.createElement("option");
+                        elem.value = jsonResponse[index]._plasticCodicePlastica;
+                        elem.innerHTML = jsonResponse[index]._plasticCodicePlastica + " -- " + jsonResponse[index]._plasticNome;
+                        list.appendChild(elem);
+                    }
+                    var filamentCode = createTextInput("code", "Codice filamento (4 caratteri)");
+                    var brandInput = createTextInput("brand", "Marca");
+                    var colorInput = createTextInput("color", "Colore");
+                    var okButton = document.createElement("button");
+                    okButton.type = "button";
+                    okButton.innerHTML = "Inserisci";
+                    okButton.onclick = () => sendFormData("input_form", "insert_filament");
+                    form.append(filamentCode, brandInput, colorInput, okButton);
+                }
+            });
+        }
+    });
 }
 
 /* shows the filaments, giving the possibility to select the plastic */
 function showFilaments() {
-
+    clearPage();
+    var form = document.getElementById("filters_form");
+    form.classList.remove("hidden");
+    document.getElementById("filters_form").classList.add("hidden");
+    var resultTable = createTable("result_table", "headers", ["code", "Codice"], ["plastic", "Plastica"], ["brand", "Marca"], ["color", "Colore"]);
+    setTable("filaments", resultTable, (jsonResponse, table) => {
+        for (const index in jsonResponse) {
+            var listElem = document.createElement("tr");
+            var filament = jsonResponse[index];
+            listElem.classList.add("result_elem");
+            var codeCell = document.createElement("td");
+            codeCell.innerHTML = filament._filamentCodiceFilamento;
+            var plasticCell = document.createElement("td");
+            plasticCell.innerHTML = filament._filamentCodicePlastica;
+            var brandCell = document.createElement("td");
+            brandCell.innerHTML = filament._filamentMarca;
+            var colorCell = document.createElement("td");
+            colorCell.innerHTML = filament._filamentColore;
+            listElem.append(codeCell, plasticCell, brandCell, colorCell);
+            table.appendChild(listElem);
+        }
+    });
 }
 
 /* shows the plastics in the database */
@@ -332,7 +388,6 @@ function sendFormData(formId, route) {
         method: "POST",
         body: fd
     };
-    console.log(form);
     var errors = form.getElementsByClassName("error");
     while (errors.length > 0) {
         errors.item(0).parentNode.removeChild(errors.item(0));
