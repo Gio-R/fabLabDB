@@ -6,6 +6,10 @@ window.onload = function() {
     /* cuts */
     /* prints */
     /* materials */
+    document.getElementById("insert_material").onclick = () => insertMaterial();
+    document.getElementById("insert_class").onclick = () => insertClass();
+    document.getElementById("show_materials").onclick = () => showMaterials();
+    document.getElementById("show_classes").onclick = () => showMaterialsClasses();
     /* plastics */
     document.getElementById("insert_plastic").onclick = () => insertPlastic();
     document.getElementById("insert_filament").onclick = () => insertFilament();
@@ -128,6 +132,52 @@ PRINTS FUNCTIONS
 MATERIALS FUNCTIONS
 ----------------------------------------------------------------------------------------
 */
+
+/* creates the form and sends the data to insert a new material into the database */
+function insertMaterial() {
+
+}
+
+/* creates the form and sends the data to insert a new materials class into the database */
+function insertClass() {
+    clearPage();
+    var form = document.getElementById("input_form");
+    showClearElem(form.id);
+    var codeInput = createTextInput("code", "Codice classe (2 caratteri)");
+    var nameInput = createTextInput("name", "Nome");
+    var button = document.createElement("button");
+    button.type = "button";
+    button.innerHTML = "Inserisci";
+    form.appendChild(codeInput);
+    form.appendChild(nameInput);
+    form.appendChild(button);
+    button.onclick = () => sendFormData("input_form", "insert_class");
+}
+
+/* shows the available materials */
+function showMaterials() {
+
+}
+
+/* shows the available materials classes */
+function showMaterialsClasses() {
+    clearPage();
+    document.getElementById("filters_form").classList.add("hidden");
+    var resultTable = createTable("result_table", "headers", ["code", "Codice"], ["name", "Nome"]);
+    setTable("materials_classes", resultTable, (jsonResponse, table) => {
+        for (const index in jsonResponse) {
+            var listElem = document.createElement("tr");
+            var mClass = jsonResponse[index];
+            listElem.classList.add("result_elem");
+            var codeCell = document.createElement("td");
+            codeCell.innerHTML = mClass._materialsclassCodiceClasse;
+            var nameCell = document.createElement("td");
+            nameCell.innerHTML = mClass._materialsclassNome;
+            listElem.append(codeCell, nameCell);
+            table.appendChild(listElem);
+        }
+    });
+}
 
 /*
 ----------------------------------------------------------------------------------------
