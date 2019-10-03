@@ -507,7 +507,7 @@ app = do
                 $ insertPrinter
                     (fromJust maybeCode)
                     (fromJust maybeBrand)
-                    (fromJust maybeDescr)
+                    (fromJust maybeModel)
                     (fromJust maybeDescr)
             else missingParameter
         post "insert_user" $ do
