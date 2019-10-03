@@ -9,6 +9,7 @@ window.onload = function() {
     document.getElementById("assign_print").onclick = () => assignPrint();
     document.getElementById("complete_print").onclick = () => completePrint();
     document.getElementById("assign_filament").onclick = () => assignFilament();
+    document.getElementById("assign_printer").onclick = () => assignPrinter();
     document.getElementById("show_prints").onclick = () => showPrints();
     /* materials */
     document.getElementById("insert_material").onclick = () => insertMaterial();
@@ -21,6 +22,7 @@ window.onload = function() {
     document.getElementById("show_plastics").onclick = () => showPlastics();
     document.getElementById("show_filaments").onclick = () => showFilaments();
     /* admins */
+    document.getElementById("insert_printer").onclick = () => insertPrinter();
 }
 
 /*
@@ -134,22 +136,110 @@ PRINTS FUNCTIONS
 
 /* creates the form and sends the data to insert a new print */
 function insertPrint() {
-
+    clearPage();
+    var form = document.getElementById("input_form");
+    fetchData("people", response => {
+        if (response.ok) {
+            response.json().then(jsonResponse => {
+                if (checkIfJsonIsError(jsonResponse) && jsonResponse["response"]["code"] != "200") {
+                    var error = document.createElement("P");
+                    error.innerHTML = jsonResponse["response"]["message"];
+                    error.classList.add("error");
+                    form.appendChild(error);
+                } else if (!checkIfJsonIsError(jsonResponse)) {
+                    showClearElem(form.id);
+                    var peopleList = document.createElement("select");
+                    peopleList.name = "client";
+                    peopleList.id = "client_select";
+                    form.appendChild(peopleList);
+                    form.appendChild(document.createElement("br"));
+                    for (const index in jsonResponse) {
+                        var elem = document.createElement("option");
+                        elem.value = jsonResponse[index]._personCf;
+                        elem.innerHTML = jsonResponse[index]._personNome + " " + jsonResponse[index]._personCognome + " -- " + jsonResponse[index]._personCf;
+                        peopleList.appendChild(elem);
+                    }
+                    var dateInput = document.createElement("input");
+                    dateInput.type = "date";
+                    dateInput.name = "date";
+                    dateInput.placeholder = "gg/mm/aaaa";
+                    var descrInput = createTextInput("descr", "Descrizione");
+                    var button = document.createElement("button");
+                    button.type = "button";
+                    button.innerHTML = "Inserisci";
+                    form.appendChild(dateInput);
+                    form.appendChild(descrInput);
+                    form.appendChild(button);
+                    button.onclick = () => sendFormData("input_form", "insert_print");
+                }
+            });
+        }
+    });
 }
 
 /* assigns a print to an operator */
 function assignPrint() {
-
+    assignAToB("assign_print_operator", "prints", "printerOperators", "print", "operator", 
+                print => print._printCodiceStampa, print => (print._printCodiceStampa + " -- " + print._printDataRichiesta + " -- " + print._printCfRichiedente),
+                operator => operator._personCf, operator => (operator._personNome + " " + operator._personCognome + " -- " + operator._personCf));
 }
 
 /* completese a print */
 function completePrint() {
-
+    clearPage();
+    var form = document.getElementById("input_form");
+    fetchData("prints", response => {
+        if (response.ok) {
+            response.json().then(jsonResponse => {
+                if (checkIfJsonIsError(jsonResponse) && jsonResponse["response"]["code"] != "200") {
+                    var error = document.createElement("P");
+                    error.innerHTML = jsonResponse["response"]["message"];
+                    error.classList.add("error");
+                    form.appendChild(error);
+                } else if (!checkIfJsonIsError(jsonResponse)) {
+                    showClearElem(form.id);
+                    var list = document.createElement("select");
+                    list.name = "print";
+                    list.id = "print_select";
+                    form.appendChild(list);
+                    for (const index in jsonResponse) {
+                        var elem = document.createElement("option");
+                        elem.value = jsonResponse[index]._printCodiceStampa;
+                        elem.innerHTML = jsonResponse[index]._printCodiceStampa + " -- " + jsonResponse[index]._printDataRichiesta + " -- " + jsonResponse[index]._printCfRichiedente;
+                        list.appendChild(elem);
+                    }
+                    form.appendChild(document.createElement("br"));
+                    var totalInput = createTextInput("total", "Costo totale (usare . per i decimali)");
+                    var materialInput = createTextInput("materials", "Costo materiali (usare . per i decimali)");
+                    var timeInput = createTextInput("time", "Tempo di completamento in ore (usare . per i decimali)");
+                    var dateInput = document.createElement("input");
+                    dateInput.type = "date";
+                    dateInput.name = "date";
+                    dateInput.placeholder = "gg/mm/aaaa";
+                    var okButton = document.createElement("button");
+                    okButton.type = "button";
+                    okButton.innerHTML = "Modifica";
+                    okButton.onclick = () => sendFormData("input_form", "modify_print");
+                    form.append(totalInput, materialInput, timeInput, dateInput, document.createElement("br"), okButton);
+                }
+            });
+        }
+    });
 }
 
 /* assigns a filament to a print */
 function assignFilament() {
+    assignAToB("assign_print_filament", "prints", "filaments", "print", "filament", print => print._printCodiceStampa, 
+                print => (print._printCodiceStampa + " -- " + print._printDataRichiesta + " -- " + print._printCfRichiedente),
+                filament => filament._filamentCodiceFilamento, 
+                filament => (filament._filamentMarca + " " + filament._filamentColore));
+}
 
+/* assigns a printer to a print */
+function assignPrinter() {
+    assignAToB("assign_print_printer", "printers", "prints", "printer", "print", printer => printer._printerCodiceStampante,
+                printer => (printer._printerMarca + " " + printer._printerModello), print => print._printCodiceStampa, 
+                print => (print._printCodiceStampa + " -- " + print._printDataRichiesta + " -- " + print._printCfRichiedente));
 }
 
 /* shows the prints */
@@ -500,6 +590,26 @@ ADMIN FUNCTIONS
 ----------------------------------------------------------------------------------------
 */
 
+/* creates the form and insert a new printer in the database */
+function insertPrinter() {
+    clearPage();
+    var form = document.getElementById("input_form");
+    showClearElem(form.id);
+    var codeInput = createTextInput("code", "Codice stampante (3 caratteri)");
+    var brandInput = createTextInput("brand", "Marca");
+    var modelInput = createTextInput("model", "Modello");
+    var descrInput = createTextInput("description", "Descrizione");
+    var button = document.createElement("button");
+    button.type = "button";
+    button.innerHTML = "Inserisci";
+    form.appendChild(codeInput);
+    form.appendChild(brandInput);
+    form.appendChild(modelInput);
+    form.appendChild(descrInput);
+    form.appendChild(button);
+    button.onclick = () => sendFormData("input_form", "insert_printer");
+}
+
 /*
 ----------------------------------------------------------------------------------------
 GENERAL FUNCTIONS
@@ -742,4 +852,63 @@ function createTable(tableId, headersId, ...headers) {
 
 function checkIfJsonIsError(json) {
     return json.hasOwnProperty("response");
+}
+
+function assignAToB(route, ARoute, BRoute, AName, BName, getACode, getAString, getBCode, getBString) {
+    clearPage();
+    var form = document.getElementById("input_form");
+    fetchData(ARoute, responseA => {
+        if (responseA.ok) {
+            responseA.json().then(jsonResponseA => {
+                if (checkIfJsonIsError(jsonResponseA) && jsonResponseA["response"]["code"] != "200") {
+                    var error = document.createElement("P");
+                    error.innerHTML = jsonResponseA["response"]["message"];
+                    error.classList.add("error");
+                    form.appendChild(error);
+                } else if (!checkIfJsonIsError(jsonResponseA)) {
+                    fetchData(BRoute, responseB => {
+                        if (responseB.ok) {
+                            responseB.json().then(jsonResponseB => {
+                                if (checkIfJsonIsError(jsonResponseB) && jsonResponseB["response"]["code"] != "200") {
+                                    var error = document.createElement("P");
+                                    error.innerHTML = jsonResponseB["response"]["message"];
+                                    error.classList.add("error");
+                                    form.appendChild(error);
+                                } else if (!checkIfJsonIsError(jsonResponseB)) {
+                                    showClearElem(form.id);
+                                    var AList = document.createElement("select");
+                                    AList.name = AName;
+                                    AList.id = AName + "_select";
+                                    form.appendChild(AList);
+                                    form.appendChild(document.createElement("br"));
+                                    for (const index in jsonResponseA) {
+                                        var elem = document.createElement("option");
+                                        elem.value = getACode(jsonResponseA[index]);
+                                        elem.innerHTML = getAString(jsonResponseA[index]);
+                                        AList.appendChild(elem);
+                                    }
+                                    var BList = document.createElement("select");
+                                    BList.name = BName;
+                                    BList.id = BName + "_select";
+                                    form.appendChild(BList);
+                                    form.appendChild(document.createElement("br"));
+                                    for (const index in jsonResponseB) {
+                                        var elem = document.createElement("option");
+                                        elem.value = getBCode(jsonResponseB[index]);
+                                        elem.innerHTML = getBString(jsonResponseB[index]);
+                                        BList.appendChild(elem);
+                                    }
+                                    var okButton = document.createElement("button");
+                                    okButton.type = "button";
+                                    okButton.innerHTML = "Assegna";
+                                    okButton.onclick = () => sendFormData("input_form", route);
+                                    form.appendChild(okButton);
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        }
+    });
 }
