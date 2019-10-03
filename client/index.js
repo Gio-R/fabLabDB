@@ -5,6 +5,11 @@ window.onload = function() {
     document.getElementById("modify_person").onclick = () => modifyPerson();
     /* cuts */
     /* prints */
+    document.getElementById("insert_print").onclick = () => insertPrint();
+    document.getElementById("assign_print").onclick = () => assignPrint();
+    document.getElementById("complete_print").onclick = () => completePrint();
+    document.getElementById("assign_filament").onclick = () => assignFilament();
+    document.getElementById("show_prints").onclick = () => showPrints();
     /* materials */
     document.getElementById("insert_material").onclick = () => insertMaterial();
     document.getElementById("insert_class").onclick = () => insertClass();
@@ -126,6 +131,71 @@ CUTS FUNCTIONS
 PRINTS FUNCTIONS
 ----------------------------------------------------------------------------------------
 */
+
+/* creates the form and sends the data to insert a new print */
+function insertPrint() {
+
+}
+
+/* assigns a print to an operator */
+function assignPrint() {
+
+}
+
+/* completese a print */
+function completePrint() {
+
+}
+
+/* assigns a filament to a print */
+function assignFilament() {
+
+}
+
+/* shows the prints */
+function showPrints() {
+    clearPage();
+    var form = document.getElementById("filters_form");
+    form.classList.remove("hidden");
+    var resultTable = createTable("result_table_works", "headers", ["code", "Cod. stampa"], ["request_day", "Data richiesta"], 
+                            ["complete_day", "Data consegna"], ["client", "CF richiedente"]);
+    document.getElementById("result_area").appendChild(resultTable);
+    var setter = (jsonResponse, table) => {
+        var body = table.getElementsByTagName("tbody")[0];
+        showClearElem(body.id);
+        for (const index in jsonResponse) {
+            var listElem = document.createElement("tr");
+            var print = jsonResponse[index];
+            listElem.classList.add("result_elem");
+            var codeCell = document.createElement("td");
+            codeCell.innerHTML = print._printCodiceStampa;
+            var requestCell = document.createElement("td");
+            requestCell.innerHTML = print._printDataRichiesta;
+            var completeCell = document.createElement("td");
+            completeCell.innerHTML = print._printDataConsegna;
+            var clientCell = document.createElement("td");
+            clientCell.innerHTML = print._printCfRichiedente;
+            var descrDiv = document.createElement("div");
+            descrDiv.classList.add("complete_description");
+            var descrPar = document.createElement("p");
+            descrPar.innerHTML = "Codice stampa: " + print._printCodiceStampa 
+                               + "</br> Data richiesta: " + print._printDataRichiesta
+                               + "</br> Codice fiscale richiedente: " + print._printCfRichiedente
+                               + "</br> Data consegna: " + (print._printDataConsegna == null ? "" : print._printDataConsegna)
+                               + "</br> Costo totale: " + (print._printCostoTotale == null ? "" : print._printCostoTotale)
+                               + "</br> Costo materiali: " + (print._printCostoMateriali == null ? "" : print._printCostoMateriali)
+                               + "</br> Tempo esecuzione: " + (print._printTempo == null ? "" : print._printTempo)
+                               + "</br> Codice fiscale incaricato: " + (print._printCfIncaricato == null ? "" : print._printCfIncaricato)
+                               + "</br> Codice stampante: " + (print._printCodiceStampante == null ? "" : print._printCodiceStampante)
+            descrDiv.appendChild(descrPar);
+            codeCell.appendChild(descrDiv);
+            listElem.append(codeCell, requestCell, completeCell, clientCell);
+            body.appendChild(listElem);
+        }
+    };
+    createFiltersRadioButtons(form, resultTable, setter, "print_type", ["all", "Tutte", "prints"], ["complete", "Complete", "complete_prints"], ["incomplete", "Incomplete", "incomplete_prints"]);
+    setTable("prints", resultTable, setter);
+}
 
 /*
 ----------------------------------------------------------------------------------------

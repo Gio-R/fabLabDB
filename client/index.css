@@ -71,7 +71,8 @@ body {
 	padding: 3px 3px;
 	border-radius: 3px;
 	text-decoration: none;
-	display: flex;
+  display: flex;
+  cursor: pointer;
 }
 .sub_menu_item:hover {
 	background-color: #aff53d;
@@ -161,11 +162,13 @@ button:hover {
   display: none;
 }
 #filters_form {
+  overflow: hidden;
   display: inline-block;
-  padding: 10px 10px 10px 10px;
+  padding: 5px 5px 5px 5px;
   box-sizing: border-box;
-  width: 25%;
+  width: 20%;
   vertical-align: middle;
+  margin-right: 10px;
 }
 input[type=radio] {
   display: inline-block;
@@ -178,12 +181,11 @@ label {
   display: none;
 }
 #result_area {
-  overflow: hidden;
   background-color: white;
   padding: 10px 10px 10px 10px;
   border-radius: 10px;
   display: inline-block;
-  width: 73%;
+  width: 76%;
   transition: transform 300ms, box-shadow 300ms;
   box-shadow: 3px 3px 3px #e93a90;
   text-align: center;
@@ -192,14 +194,17 @@ label {
 #filters_form.hidden+#result_area {
   width: 98%;
 }
-#result_table {
+.result_elem.hidden{
+  display: none;
+}
+#result_table, #result_table_works {
   width: 100%;
   line-height: 1.5em;
   border-spacing: 0;
   border-radius: 10px;
   table-layout: fixed;
 }
-#result_elem.hidden{
+#result_table_works.hidden{
   display: none;
 }
 th {
@@ -209,7 +214,6 @@ th:last-of-type {
   border-top-right-radius: 10px;
 }
 th:first-of-type {
-  background: #c2f56e;
   border-top-left-radius: 10px;
 }
 .result_elem {
@@ -219,9 +223,39 @@ th:first-of-type {
   border-bottom: 1px solid #c2f56e;
 }
 td {
+  position: relative;
   border-bottom: 1px solid #c2f56e;
 }
-
+.result_elem {
+  flex-grow: 1;
+  padding: 5px;
+}
+.complete_description {
+  display: none;
+  text-align: left;
+  position: absolute;
+  white-space: nowrap;
+  top: 0;
+  left: 0;
+	border-radius: 5px;
+	background-color: #ffffff;
+	z-index: 1;
+	list-style: none;
+	margin: 1px;
+	padding: 15px;
+	padding-top: 3px;
+	padding-bottom: 5px;
+  box-shadow: 0 2px 3px 0 rgba(126, 177, 44, 0.12), 0 2px 3px 0 rgba(126, 177, 44, 0.24);
+}
+.result_elem:hover {
+	background-color: #92ec00;
+}
+.complete_description:hover {
+  display: block;
+}
+.result_elem:hover .complete_description {
+  display: block;
+}
 select {
   font-family: 'Asap', sans-serif;
   font-size: 16px;
