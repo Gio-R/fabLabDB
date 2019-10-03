@@ -4,6 +4,13 @@ window.onload = function() {
     document.getElementById("show_people").onclick = () => showPeople();
     document.getElementById("modify_person").onclick = () => modifyPerson();
     /* cuts */
+    document.getElementById("insert_cut").onclick = () => insertCut();
+    document.getElementById("assign_cut").onclick = () => assignCut();
+    document.getElementById("complete_cut").onclick = () => completeCut();
+    document.getElementById("assign_processing").onclick = () => assignProcessing();
+    document.getElementById("show_cuts").onclick = () => showCuts();
+    document.getElementById("insert_processing").onclick = () => insertProcessing();
+    document.getElementById("show_processings").onclick = () => showProcessings();
     /* prints */
     document.getElementById("insert_print").onclick = () => insertPrint();
     document.getElementById("assign_print").onclick = () => assignPrint();
@@ -128,6 +135,86 @@ CUTS FUNCTIONS
 ----------------------------------------------------------------------------------------
 */
 
+/* */
+function insertCut() {
+    insertWork("insert_cut");
+}
+
+/* */
+function assignCut() {
+    assignAToB("assign_cut_operator", "cuts", "cutterOperators", "cut", "operator", 
+                cut => cut._cutCodiceIntaglio, cut => (cut._cutCodiceIntaglio + " -- " + cut._cutDataRichiesta + " -- " + cut._cutCfRichiedente),
+                operator => operator._personCf, operator => (operator._personNome + " " + operator._personCognome + " -- " + operator._personCf));
+}
+
+/* */
+function completeCut() {
+    completeWork("cuts", "cut", cut => cut._cutCodiceIntaglio, 
+                    cut => (cut._cutCodiceIntaglio + " -- " + cut._cutDataRichiesta + " -- " + cut._cutCfRichiedente),
+                    "modify_cut");
+}
+
+/* */
+function assignProcessing() {
+
+}
+
+/* */
+function showCuts() {
+    clearPage();
+    var form = document.getElementById("filters_form");
+    form.classList.remove("hidden");
+    var resultTable = createTable("result_table_works", "headers", ["code", "Cod. intaglio"], ["request_day", "Data richiesta"], 
+                            ["complete_day", "Data consegna"], ["client", "CF richiedente"]);
+    document.getElementById("result_area").appendChild(resultTable);
+    var setter = (jsonResponse, table) => {
+        var body = table.getElementsByTagName("tbody")[0];
+        showClearElem(body.id);
+        for (const index in jsonResponse) {
+            var listElem = document.createElement("tr");
+            var cut = jsonResponse[index];
+            listElem.classList.add("result_elem");
+            var codeCell = document.createElement("td");
+            codeCell.innerHTML = cut._cutCodiceIntaglio;
+            var requestCell = document.createElement("td");
+            requestCell.innerHTML = cut._cutDataRichiesta;
+            var completeCell = document.createElement("td");
+            completeCell.innerHTML = cut._cutDataConsegna;
+            var clientCell = document.createElement("td");
+            clientCell.innerHTML = cut._cutCfRichiedente;
+            var descrDiv = document.createElement("div");
+            descrDiv.classList.add("complete_description");
+            var descrPar = document.createElement("p");
+            descrPar.innerHTML = "Codice intaglio: " + cut._cutCodiceIntaglio 
+                               + "</br> Data richiesta: " + cut._cutDataRichiesta
+                               + "</br> Codice fiscale richiedente: " + cut._cutCfRichiedente
+                               + "</br> Data consegna: " + (cut._cutDataConsegna == null ? "" : cut._cutDataConsegna)
+                               + "</br> Costo totale: " + (cut._cutCostoTotale == null ? "" : cut._cutCostoTotale)
+                               + "</br> Costo materiali: " + (cut._cutCostoMateriali == null ? "" : cut._cutCostoMateriali)
+                               + "</br> Tempo esecuzione: " + (cut._cutTempo == null ? "" : cut._cutTempo)
+                               + "</br> Codice fiscale incaricato: " + (cut._cutCfIncaricato == null ? "" : cut._cutCfIncaricato)
+                               + "</br> Descrizione: " + (cut._cutDescrizione == null ? "" : cut._cutDescrizione);
+            descrDiv.appendChild(descrPar);
+            codeCell.appendChild(descrDiv);
+            listElem.append(codeCell, requestCell, completeCell, clientCell);
+            body.appendChild(listElem);
+        }
+    };
+    createFiltersRadioButtons(form, resultTable, setter, "cut_type", ["all", "Tutte", "cuts"], ["complete", "Complete", "complete_cuts"], ["incomplete", "Incomplete", "incomplete_cuts"]);
+    setTable("cuts", resultTable, setter);
+}
+
+/* */
+function insertProcessing() {
+
+}
+
+/* */
+function showProcessings() {
+
+}
+
+
 /*
 ----------------------------------------------------------------------------------------
 PRINTS FUNCTIONS
@@ -136,45 +223,7 @@ PRINTS FUNCTIONS
 
 /* creates the form and sends the data to insert a new print */
 function insertPrint() {
-    clearPage();
-    var form = document.getElementById("input_form");
-    fetchData("people", response => {
-        if (response.ok) {
-            response.json().then(jsonResponse => {
-                if (checkIfJsonIsError(jsonResponse) && jsonResponse["response"]["code"] != "200") {
-                    var error = document.createElement("P");
-                    error.innerHTML = jsonResponse["response"]["message"];
-                    error.classList.add("error");
-                    form.appendChild(error);
-                } else if (!checkIfJsonIsError(jsonResponse)) {
-                    showClearElem(form.id);
-                    var peopleList = document.createElement("select");
-                    peopleList.name = "client";
-                    peopleList.id = "client_select";
-                    form.appendChild(peopleList);
-                    form.appendChild(document.createElement("br"));
-                    for (const index in jsonResponse) {
-                        var elem = document.createElement("option");
-                        elem.value = jsonResponse[index]._personCf;
-                        elem.innerHTML = jsonResponse[index]._personNome + " " + jsonResponse[index]._personCognome + " -- " + jsonResponse[index]._personCf;
-                        peopleList.appendChild(elem);
-                    }
-                    var dateInput = document.createElement("input");
-                    dateInput.type = "date";
-                    dateInput.name = "date";
-                    dateInput.placeholder = "gg/mm/aaaa";
-                    var descrInput = createTextInput("descr", "Descrizione");
-                    var button = document.createElement("button");
-                    button.type = "button";
-                    button.innerHTML = "Inserisci";
-                    form.appendChild(dateInput);
-                    form.appendChild(descrInput);
-                    form.appendChild(button);
-                    button.onclick = () => sendFormData("input_form", "insert_print");
-                }
-            });
-        }
-    });
+    insertWork("insert_print");
 }
 
 /* assigns a print to an operator */
@@ -186,45 +235,9 @@ function assignPrint() {
 
 /* completese a print */
 function completePrint() {
-    clearPage();
-    var form = document.getElementById("input_form");
-    fetchData("prints", response => {
-        if (response.ok) {
-            response.json().then(jsonResponse => {
-                if (checkIfJsonIsError(jsonResponse) && jsonResponse["response"]["code"] != "200") {
-                    var error = document.createElement("P");
-                    error.innerHTML = jsonResponse["response"]["message"];
-                    error.classList.add("error");
-                    form.appendChild(error);
-                } else if (!checkIfJsonIsError(jsonResponse)) {
-                    showClearElem(form.id);
-                    var list = document.createElement("select");
-                    list.name = "print";
-                    list.id = "print_select";
-                    form.appendChild(list);
-                    for (const index in jsonResponse) {
-                        var elem = document.createElement("option");
-                        elem.value = jsonResponse[index]._printCodiceStampa;
-                        elem.innerHTML = jsonResponse[index]._printCodiceStampa + " -- " + jsonResponse[index]._printDataRichiesta + " -- " + jsonResponse[index]._printCfRichiedente;
-                        list.appendChild(elem);
-                    }
-                    form.appendChild(document.createElement("br"));
-                    var totalInput = createTextInput("total", "Costo totale (usare . per i decimali)");
-                    var materialInput = createTextInput("materials", "Costo materiali (usare . per i decimali)");
-                    var timeInput = createTextInput("time", "Tempo di completamento in ore (usare . per i decimali)");
-                    var dateInput = document.createElement("input");
-                    dateInput.type = "date";
-                    dateInput.name = "date";
-                    dateInput.placeholder = "gg/mm/aaaa";
-                    var okButton = document.createElement("button");
-                    okButton.type = "button";
-                    okButton.innerHTML = "Modifica";
-                    okButton.onclick = () => sendFormData("input_form", "modify_print");
-                    form.append(totalInput, materialInput, timeInput, dateInput, document.createElement("br"), okButton);
-                }
-            });
-        }
-    });
+    completeWork("prints", "print", print => print._printCodiceStampa, 
+                    print => (print._printCodiceStampa + " -- " + print._printDataRichiesta + " -- " + print._printCfRichiedente),
+                    "modify_print");
 }
 
 /* assigns a filament to a print */
@@ -277,6 +290,7 @@ function showPrints() {
                                + "</br> Tempo esecuzione: " + (print._printTempo == null ? "" : print._printTempo)
                                + "</br> Codice fiscale incaricato: " + (print._printCfIncaricato == null ? "" : print._printCfIncaricato)
                                + "</br> Codice stampante: " + (print._printCodiceStampante == null ? "" : print._printCodiceStampante)
+                               + "</br> Descrizione: " + (print._printDescrizione == null ? "" : print._printDescrizione);
             descrDiv.appendChild(descrPar);
             codeCell.appendChild(descrDiv);
             listElem.append(codeCell, requestCell, completeCell, clientCell);
@@ -854,6 +868,7 @@ function checkIfJsonIsError(json) {
     return json.hasOwnProperty("response");
 }
 
+/* function to create the form to assign an A element to a B element, using the given route */
 function assignAToB(route, ARoute, BRoute, AName, BName, getACode, getAString, getBCode, getBString) {
     clearPage();
     var form = document.getElementById("input_form");
@@ -907,6 +922,92 @@ function assignAToB(route, ARoute, BRoute, AName, BName, getACode, getAString, g
                             });
                         }
                     });
+                }
+            });
+        }
+    });
+}
+
+/* function to insert a new work into the given route (either a print or a cut) */
+function insertWork(route) {
+    clearPage();
+    var form = document.getElementById("input_form");
+    fetchData("people", response => {
+        if (response.ok) {
+            response.json().then(jsonResponse => {
+                if (checkIfJsonIsError(jsonResponse) && jsonResponse["response"]["code"] != "200") {
+                    var error = document.createElement("P");
+                    error.innerHTML = jsonResponse["response"]["message"];
+                    error.classList.add("error");
+                    form.appendChild(error);
+                } else if (!checkIfJsonIsError(jsonResponse)) {
+                    showClearElem(form.id);
+                    var peopleList = document.createElement("select");
+                    peopleList.name = "client";
+                    peopleList.id = "client_select";
+                    form.appendChild(peopleList);
+                    form.appendChild(document.createElement("br"));
+                    for (const index in jsonResponse) {
+                        var elem = document.createElement("option");
+                        elem.value = jsonResponse[index]._personCf;
+                        elem.innerHTML = jsonResponse[index]._personNome + " " + jsonResponse[index]._personCognome + " -- " + jsonResponse[index]._personCf;
+                        peopleList.appendChild(elem);
+                    }
+                    var dateInput = document.createElement("input");
+                    dateInput.type = "date";
+                    dateInput.name = "date";
+                    dateInput.placeholder = "gg/mm/aaaa";
+                    var descrInput = createTextInput("descr", "Descrizione");
+                    var button = document.createElement("button");
+                    button.type = "button";
+                    button.innerHTML = "Inserisci";
+                    form.appendChild(dateInput);
+                    form.appendChild(descrInput);
+                    form.appendChild(button);
+                    button.onclick = () => sendFormData("input_form", route);
+                }
+            });
+        }
+    });
+}
+
+/* function to complete a work into the given route (either a print or a cut) */
+function completeWork(dataRoute, workType, workCode, workToString, insertRoute) {
+    clearPage();
+    var form = document.getElementById("input_form");
+    fetchData(dataRoute, response => {
+        if (response.ok) {
+            response.json().then(jsonResponse => {
+                if (checkIfJsonIsError(jsonResponse) && jsonResponse["response"]["code"] != "200") {
+                    var error = document.createElement("P");
+                    error.innerHTML = jsonResponse["response"]["message"];
+                    error.classList.add("error");
+                    form.appendChild(error);
+                } else if (!checkIfJsonIsError(jsonResponse)) {
+                    showClearElem(form.id);
+                    var list = document.createElement("select");
+                    list.name = workType;
+                    list.id = workType + "_select";
+                    form.appendChild(list);
+                    for (const index in jsonResponse) {
+                        var elem = document.createElement("option");
+                        elem.value = workCode(jsonResponse[index]);
+                        elem.innerHTML = workToString(jsonResponse[index]);
+                        list.appendChild(elem);
+                    }
+                    form.appendChild(document.createElement("br"));
+                    var totalInput = createTextInput("total", "Costo totale (usare . per i decimali)");
+                    var materialInput = createTextInput("materials", "Costo materiali (usare . per i decimali)");
+                    var timeInput = createTextInput("time", "Tempo di completamento in ore (usare . per i decimali)");
+                    var dateInput = document.createElement("input");
+                    dateInput.type = "date";
+                    dateInput.name = "date";
+                    dateInput.placeholder = "gg/mm/aaaa";
+                    var okButton = document.createElement("button");
+                    okButton.type = "button";
+                    okButton.innerHTML = "Modifica";
+                    okButton.onclick = () => sendFormData("input_form", insertRoute);
+                    form.append(totalInput, materialInput, timeInput, dateInput, document.createElement("br"), okButton);
                 }
             });
         }
