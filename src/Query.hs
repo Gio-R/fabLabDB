@@ -218,7 +218,7 @@ insertMaterial code classCode name width descr =
           $ insertValues
               [ Material
                   (pk mClass)
-                  (prepareCode (classCode ++ code))
+                  (prepareCode (classCode ++ code ++ show width))
                   (prepareName name)
                   width
                   (pack descr)
