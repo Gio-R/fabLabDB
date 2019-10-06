@@ -157,7 +157,6 @@ function completeCut() {
 
 /* */
 function assignProcessing() {
-
 }
 
 /* shows all the cuts in the database*/
@@ -275,36 +274,73 @@ function showProcessings() {
     clearPage();
     var form = document.getElementById("filters_form");
     form.classList.remove("hidden");
-    var resultTable = createTable("result_table", "headers", ["code", "Codice lavorazione"], ["description", "Descrizione"]);
-    document.getElementById("result_area").appendChild(resultTable);
-    var setter = (jsonResponse, table) => {
-        var body = table.getElementsByTagName("tbody")[0];
-        showClearElem(body.id);
-        for (const index in jsonResponse) {
-            var listElem = document.createElement("tr");
-            var processing = jsonResponse[index];
-            listElem.classList.add("result_elem");
-            var codeCell = document.createElement("td");
-            codeCell.innerHTML = processing._processingCodiceLavorazione;
-            var descrCell = document.createElement("td");
-            descrCell.innerHTML = processing._processingDescrizione;
-            var descrDiv = document.createElement("div");
-            descrDiv.classList.add("complete_description");
-            var descrPar = document.createElement("p");
-            descrPar.innerHTML = "Codice lavorazione: " + processing._processingCodiceLavorazione
-                               + "</br> Tipo: " + processing._processingCodiceTipo
-                               + "</br> Materiale: " + processing._processingCodiceMateriale
-                               + "</br> Potenza massima: " + processing._processingPotenzaMassima
-                               + "</br> Potenza minima: " + processing._processingPotenzaMinima
-                               + "</br> Velocità: " + processing._processingVelocita
-                               + "</br> Descrizione: " + processing._processingDescrizione;
-            descrDiv.appendChild(descrPar);
-            codeCell.appendChild(descrDiv);
-            listElem.append(codeCell, descrCell);
-            body.appendChild(listElem);
+    fetchData("materials", response => {
+        if (response.ok) {
+            response.json().then(jsonResponse => {
+                if (checkIfJsonIsError(jsonResponse) && jsonResponse["response"]["code"] != "200") {
+                    var error = document.createElement("P");
+                    error.innerHTML = jsonResponse["response"]["message"];
+                    error.classList.add("error");
+                    form.appendChild(error);
+                } else if (!checkIfJsonIsError(jsonResponse)) {
+                    var list = document.createElement("select");
+                    list.name = "material";
+                    list.id = "material_select";
+                    var elem = document.createElement("option");
+                    elem.value = "all";
+                    elem.innerHTML = "Tutti le lavorazioni";
+                    list.appendChild(elem);
+                    form.appendChild(list);
+                    for (const index in jsonResponse) {
+                        elem = document.createElement("option");
+                        elem.value = jsonResponse[index]._materialCodiceMateriale
+                        elem.innerHTML = jsonResponse[index]._materialCodiceClasse + " " + jsonResponse[index]._materialNome + " " + jsonResponse[index]._materialSpessore;
+                        list.appendChild(elem);
+                    }
+                    var resultTable = createTable("result_table", "headers", ["code", "Codice lavorazione"], ["description", "Descrizione"]);
+                    document.getElementById("result_area").appendChild(resultTable);
+                    var setter = (jsonResponse, table) => {
+                        var body = table.getElementsByTagName("tbody")[0];
+                        showClearElem(body.id);
+                        for (const index in jsonResponse) {
+                            var listElem = document.createElement("tr");
+                            var processing = jsonResponse[index];
+                            listElem.classList.add("result_elem");
+                            var codeCell = document.createElement("td");
+                            codeCell.innerHTML = processing._processingCodiceLavorazione;
+                            var descrCell = document.createElement("td");
+                            descrCell.innerHTML = processing._processingDescrizione;
+                            var descrDiv = document.createElement("div");
+                            descrDiv.classList.add("complete_description");
+                            var descrPar = document.createElement("p");
+                            descrPar.innerHTML = "Codice lavorazione: " + processing._processingCodiceLavorazione
+                                            + "</br> Tipo: " + processing._processingCodiceTipo
+                                            + "</br> Materiale: " + processing._processingCodiceMateriale
+                                            + "</br> Potenza massima: " + processing._processingPotenzaMassima
+                                            + "</br> Potenza minima: " + processing._processingPotenzaMinima
+                                            + "</br> Velocità: " + processing._processingVelocita
+                                            + "</br> Descrizione: " + processing._processingDescrizione;
+                            descrDiv.appendChild(descrPar);
+                            codeCell.appendChild(descrDiv);
+                            listElem.append(codeCell, descrCell);
+                            body.appendChild(listElem);
+                        }
+                    };
+                    var changer = () => {
+                        if (list.value == "all") {
+                            setTable("processings", resultTable, setter);
+                        } else {
+                            useChosenData("filters_form", "select_processings_by_material", data => {
+                                setTableFromData(data, resultTable, setter);
+                            });
+                        }
+                    };
+                    changer();
+                    list.onchange = () => changer();
+                }
+            });
         }
-    };
-    setTable("processings", resultTable, setter);
+    });
 }
 
 
