@@ -33,6 +33,7 @@ window.onload = function() {
     /* admins */
     document.getElementById("insert_printer").onclick = () => insertPrinter();
     document.getElementById("insert_type").onclick = () => insertType();
+    document.getElementById("insert_admin").onclick = () => insertAdmin();
 }
 
 /*
@@ -789,6 +790,25 @@ function insertPrinter() {
     form.appendChild(descrInput);
     form.appendChild(button);
     button.onclick = () => sendFormData("input_form", "insert_printer");
+}
+
+/* creates the form and insert a new admin in the database */
+function insertAdmin() {
+    clearPage();
+    var form = document.getElementById("input_form");
+    showClearElem(form.id);
+    var usernameInput = createTextInput("username", "Username");
+    var passwordInput = document.createElement("input");
+    passwordInput.type = "password";
+    passwordInput.name = "password";
+    passwordInput.placeholder = "Password";
+    var button = document.createElement("button");
+    button.type = "button";
+    button.innerHTML = "Inserisci";
+    form.appendChild(usernameInput);
+    form.appendChild(passwordInput);
+    form.appendChild(button);
+    button.onclick = () => sendFormData("input_form", "insert_user");
 }
 
 /*
