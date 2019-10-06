@@ -323,6 +323,11 @@ app = do
                   (read $ fromJust maybeSpeed :: Int)
                   (fromJust maybeDescr)
           else missingParameter
+        post "select_processing_by_material" $ do
+          maybeMaterialCode <- param "material"
+          case maybeMaterialCode of
+            Nothing -> missingParameter
+            Just code -> executeQueryListAndSendResult $ selectProcessingsByMaterials code
       post "insert_plastic" $ do
         maybeCode <- param "code"
         maybeName <- param "name"
