@@ -30,6 +30,7 @@ window.onload = function() {
     document.getElementById("show_filaments").onclick = () => showFilaments();
     /* admins */
     document.getElementById("insert_printer").onclick = () => insertPrinter();
+    document.getElementById("insert_type").onclick = () => insertType();
 }
 
 /*
@@ -135,19 +136,19 @@ CUTS FUNCTIONS
 ----------------------------------------------------------------------------------------
 */
 
-/* */
+/* creates the form and insert a new cut */
 function insertCut() {
     insertWork("insert_cut");
 }
 
-/* */
+/* assigns a cut to an operator*/
 function assignCut() {
     assignAToB("assign_cut_operator", "cuts", "cutterOperators", "cut", "operator", 
                 cut => cut._cutCodiceIntaglio, cut => (cut._cutCodiceIntaglio + " -- " + cut._cutDataRichiesta + " -- " + cut._cutCfRichiedente),
                 operator => operator._personCf, operator => (operator._personNome + " " + operator._personCognome + " -- " + operator._personCf));
 }
 
-/* */
+/* completes a cut*/
 function completeCut() {
     completeWork("cuts", "cut", cut => cut._cutCodiceIntaglio, 
                     cut => (cut._cutCodiceIntaglio + " -- " + cut._cutDataRichiesta + " -- " + cut._cutCfRichiedente),
@@ -159,7 +160,7 @@ function assignProcessing() {
 
 }
 
-/* */
+/* shows all the cuts in the database*/
 function showCuts() {
     clearPage();
     var form = document.getElementById("filters_form");
@@ -204,14 +205,106 @@ function showCuts() {
     setTable("cuts", resultTable, setter);
 }
 
-/* */
+/* creates the form and inserts a new processing */
 function insertProcessing() {
-
+    clearPage();
+    var form = document.getElementById("input_form");
+    fetchData("types", responseTypes => {
+        if (responseTypes.ok) {
+            responseTypes.json().then(jsonResponseTypes => {
+                if (checkIfJsonIsError(jsonResponseTypes) && jsonResponseTypes["response"]["code"] != "200") {
+                    var error = document.createElement("P");
+                    error.innerHTML = jsonResponseTypes["response"]["message"];
+                    error.classList.add("error");
+                    form.appendChild(error);
+                } else if (!checkIfJsonIsError(jsonResponseTypes)) {
+                    fetchData("materials", responseMaterials => {
+                        if (responseMaterials.ok) {
+                            responseMaterials.json().then(jsonResponseMaterials => {
+                                if (checkIfJsonIsError(jsonResponseMaterials) && jsonResponseMaterials["response"]["code"] != "200") {
+                                    var error = document.createElement("P");
+                                    error.innerHTML = jsonResponseMaterials["response"]["message"];
+                                    error.classList.add("error");
+                                    form.appendChild(error);
+                                } else if (!checkIfJsonIsError(jsonResponseMaterials)) {
+                                    showClearElem(form.id);
+                                    var typesList = document.createElement("select");
+                                    typesList.name = "type";
+                                    typesList.id = "type_select";
+                                    form.appendChild(typesList);
+                                    form.appendChild(document.createElement("br"));
+                                    for (const index in jsonResponseTypes) {
+                                        var elem = document.createElement("option");
+                                        elem.value = jsonResponseTypes[index]._typeCodiceTipo;
+                                        elem.innerHTML = jsonResponseTypes[index]._typeCodiceTipo + " " + jsonResponseTypes[index]._typeNome;
+                                        typesList.appendChild(elem);
+                                    }
+                                    var materialsTypes = document.createElement("select");
+                                    materialsTypes.name = "material";
+                                    materialsTypes.id = "material_select";
+                                    form.appendChild(materialsTypes);
+                                    form.appendChild(document.createElement("br"));
+                                    for (const index in jsonResponseMaterials) {
+                                        var elem = document.createElement("option");
+                                        elem.value = jsonResponseMaterials[index]._materialCodiceMateriale;
+                                        elem.innerHTML = jsonResponseMaterials[index]._materialNome + " " + jsonResponseMaterials[index]._materialSpessore;
+                                        materialsTypes.appendChild(elem);
+                                    }
+                                    var maxPInput = createTextInput("max_potency", "Potenza massima");
+                                    var minPInput = createTextInput("min_potency", "Potenze minima");
+                                    var speedInput = createTextInput("speed", "Velocità");
+                                    var descrInput = createTextInput("description", "Descrizione");
+                                    var button = document.createElement("button");
+                                    button.type = "button";
+                                    button.innerHTML = "Inserisci";
+                                    form.append(maxPInput, minPInput, speedInput, descrInput);
+                                    form.appendChild(button);
+                                    button.onclick = () => sendFormData("input_form", "insert_processing");
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        }
+    });
 }
 
 /* */
 function showProcessings() {
-
+    clearPage();
+    var form = document.getElementById("filters_form");
+    form.classList.remove("hidden");
+    var resultTable = createTable("result_table", "headers", ["code", "Codice lavorazione"], ["description", "Descrizione"]);
+    document.getElementById("result_area").appendChild(resultTable);
+    var setter = (jsonResponse, table) => {
+        var body = table.getElementsByTagName("tbody")[0];
+        showClearElem(body.id);
+        for (const index in jsonResponse) {
+            var listElem = document.createElement("tr");
+            var processing = jsonResponse[index];
+            listElem.classList.add("result_elem");
+            var codeCell = document.createElement("td");
+            codeCell.innerHTML = processing._processingCodiceLavorazione;
+            var descrCell = document.createElement("td");
+            descrCell.innerHTML = processing._processingDescrizione;
+            var descrDiv = document.createElement("div");
+            descrDiv.classList.add("complete_description");
+            var descrPar = document.createElement("p");
+            descrPar.innerHTML = "Codice lavorazione: " + processing._processingCodiceLavorazione
+                               + "</br> Tipo: " + processing._processingCodiceTipo
+                               + "</br> Materiale: " + processing._processingCodiceMateriale
+                               + "</br> Potenza massima: " + processing._processingPotenzaMassima
+                               + "</br> Potenza minima: " + processing._processingPotenzaMinima
+                               + "</br> Velocità: " + processing._processingVelocita
+                               + "</br> Descrizione: " + processing._processingDescrizione;
+            descrDiv.appendChild(descrPar);
+            codeCell.appendChild(descrDiv);
+            listElem.append(codeCell, descrCell);
+            body.appendChild(listElem);
+        }
+    };
+    setTable("processings", resultTable, setter);
 }
 
 
@@ -603,6 +696,24 @@ function showPlastics() {
 ADMIN FUNCTIONS
 ----------------------------------------------------------------------------------------
 */
+
+/* creates the form and sends the data to insert a new type of processing in the database */
+function insertType() {
+    clearPage();
+    var form = document.getElementById("input_form");
+    showClearElem(form.id);
+    var codeInput = createTextInput("code", "Codice tipo di lavorazione (3 caratteri)");
+    var nameInput = createTextInput("name", "Nome tipo di lavorazione");
+    var descrInput = createTextInput("description", "Descrizione");
+    var button = document.createElement("button");
+    button.type = "button";
+    button.innerHTML = "Inserisci";
+    form.appendChild(codeInput);
+    form.appendChild(nameInput);
+    form.appendChild(descrInput);
+    form.appendChild(button);
+    button.onclick = () => sendFormData("input_form", "insert_type");
+}
 
 /* creates the form and insert a new printer in the database */
 function insertPrinter() {
