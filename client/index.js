@@ -8,6 +8,7 @@ window.onload = function() {
     document.getElementById("assign_cut").onclick = () => assignCut();
     document.getElementById("complete_cut").onclick = () => completeCut();
     document.getElementById("assign_processing").onclick = () => assignProcessing();
+    document.getElementById("show_assignments_cuts").onclick = () => showCutsAssignments();
     document.getElementById("show_cuts").onclick = () => showCuts();
     document.getElementById("insert_processing").onclick = () => insertProcessing();
     document.getElementById("show_processings").onclick = () => showProcessings();
@@ -16,6 +17,7 @@ window.onload = function() {
     document.getElementById("assign_print").onclick = () => assignPrint();
     document.getElementById("complete_print").onclick = () => completePrint();
     document.getElementById("assign_filament").onclick = () => assignFilament();
+    document.getElementById("show_assignments_prints").onclick = () => showPrintsAssignments();
     document.getElementById("assign_printer").onclick = () => assignPrinter();
     document.getElementById("show_prints").onclick = () => showPrints();
     /* materials */
@@ -155,8 +157,16 @@ function completeCut() {
                     "modify_cut");
 }
 
-/* */
+/* assigns a processing to a cut*/
 function assignProcessing() {
+    // TODO:
+    showNotYetImplemented("result_area");
+}
+
+/* shows which processings are assigned to which cuts */
+function showCutsAssignments() {
+    // TODO:
+    showNotYetImplemented("result_area");
 }
 
 /* shows all the cuts in the database*/
@@ -371,10 +381,20 @@ function completePrint() {
 
 /* assigns a filament to a print */
 function assignFilament() {
+    // TODO:
+    showNotYetImplemented("result_area");
+    /*
     assignAToB("assign_print_filament", "prints", "filaments", "print", "filament", print => print._printCodiceStampa, 
                 print => (print._printCodiceStampa + " -- " + print._printDataRichiesta + " -- " + print._printCfRichiedente),
                 filament => filament._filamentCodiceFilamento, 
                 filament => (filament._filamentMarca + " " + filament._filamentColore));
+    */
+}
+
+/* shows which filaments are assigned to which prints */
+function showPrintsAssignments() {
+    // TODO:
+    showNotYetImplemented("result_area");
 }
 
 /* assigns a printer to a print */
@@ -1159,4 +1179,13 @@ function completeWork(dataRoute, workType, workCode, workToString, insertRoute) 
             });
         }
     });
+}
+
+function showNotYetImplemented(areaId) {
+    clearPage();
+    var p = document.createElement("p");
+    p.classList.add("alert");
+    p.innerHTML = "Questa funzione sarà implementata a breve!";
+    showClearElem(areaId);
+    document.getElementById(areaId).appendChild(p);
 }
