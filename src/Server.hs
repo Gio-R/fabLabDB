@@ -227,8 +227,9 @@ app = do
   middleware $ staticPolicy $ addBase "static"
   prehook baseHook $ do
     -- routes for unauthenticated users
-    get root $ do
-      file "text/html" $ getClientFilePath "login.html"
+    get root
+      $ file "text/html"
+      $ getClientFilePath "login.html"
     post "login" $ do
       maybeUser <- param "username"
       maybePswd <- param "password"
@@ -246,8 +247,9 @@ app = do
       $ getClientFilePath "login.css"
     prehook authHook $ do
       -- routes for authenticated users
-      get "app" $ do
-        file "text/html" $ getClientFilePath "index.html"
+      get "app"
+        $ file "text/html"
+        $ getClientFilePath "index.html"
       post "insert_person" $ do
         maybeCf <- param "cf"
         maybeName <- param "name"
@@ -404,7 +406,7 @@ app = do
                   (read $ fromJust maybePrint :: Int)
                   (read $ fromJust maybeDate :: Day)
                   (read $ fromJust maybeTime :: Double)
-                  (read $ fromJust maybeTotal :: Scientific)                  
+                  (read $ fromJust maybeTotal :: Scientific)
                   (read $ fromJust maybeMaterials :: Scientific)
           else missingParameter
       post "insert_cut" $ do
@@ -429,7 +431,7 @@ app = do
                   (read $ fromJust maybeCode :: Int)
                   (fromJust maybeCf)
           else missingParameter
-      post "modify_cut" $  do
+      post "modify_cut" $ do
         maybeCut <- param "cut"
         maybeDate <- param "date"
         maybeTime <- param "time"
@@ -442,7 +444,7 @@ app = do
                   (read $ fromJust maybeCut :: Int)
                   (read $ fromJust maybeDate :: Day)
                   (read $ fromJust maybeTime :: Double)
-                  (read $ fromJust maybeTotal :: Scientific)                  
+                  (read $ fromJust maybeTotal :: Scientific)
                   (read $ fromJust maybeMaterials :: Scientific)
           else missingParameter
       get "people" $ do
@@ -482,13 +484,14 @@ app = do
       get "index.js"
         $ file "application/javascript"
         $ getClientFilePath "index.js"
-      get ("index.css")
+      get "index.css"
         $ file "text/css"
         $ getClientFilePath "index.css"
       prehook adminHook $ do
         -- routes for authenticated admins
-        get "manager" $ do
-          text "with great power comes great responsability!"
+        get "manager"
+          $ file "text/html"
+          $ getClientFilePath "manager.html"
         post "insert_type" $ do
           maybeCode <- param "code"
           maybeName <- param "name"
@@ -525,6 +528,12 @@ app = do
                     (fromJust maybeUser)
                     (fromJust maybePswd)
             else messageJson 401 "Parametro mancante"
+        get "manager.js"
+          $ file "application/javascript"
+          $ getClientFilePath "manager.js"
+        get "manager.css"
+          $ file "text/css"
+          $ getClientFilePath "manager.css"
 
 -- orphan istances (argh) because they are not necessary for the db part of the application, only for the server one
 deriving instance FromJSON Person
