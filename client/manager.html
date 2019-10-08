@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="it">
+    <head>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="manager.css">
+        <script type="application/javascript" src="./manager.js"></script>
+        <script type="application/javascript" src="./common.js"></script>
+        <title>Menù admin</title>
+    </head>
+    <body>
+        <header class="fixed">
+            <nav class="menu">
+                <ul class="menu_list">
+                    <li class="menu_item" id="insert_type">Inserisci nuovo tipo di lavorazione</li>
+                    <li class="menu_item" id="insert_printer">Inserisci nuova stampante</li>
+                    <li class="menu_item" id="insert_admin">Inserisci nuovo admin</li>
+                </ul>
+            </nav>
+        </header>
+        <main class="scrollable">
+            <div id="user_input">
+                <form class="hidden hideable" id="input_form" method="POST" enctype="multipart/form-data"></form>
+            </div>
+        </main>
+        <footer>
+            <p>
+              <a href="./app">User area</a>
+            </p>
+          </footer>                              
+    </body>
+</html>

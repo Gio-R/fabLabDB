@@ -14,7 +14,7 @@ body {
   background-color: #c2f56e;
   font-family: 'Asap', sans-serif;
 }
-#login_form {
+#login_form, section {
   overflow: hidden;
   background-color: white;
   padding: 10px 20px 30px 30px;
@@ -26,6 +26,10 @@ body {
   transform: translate(-50%, -50%);
   transition: transform 300ms, box-shadow 300ms;
   box-shadow: 3px 3px 3px #e93a90;
+}
+section {
+  text-align: center;
+  width: 30%;
 }
 #login_form::before, #login_form::after {
   content: '';
@@ -95,4 +99,25 @@ button:hover {
   to {
     transform: rotate(360deg);
   }
+}
+section > h1 {
+  font-family: 'Asap', sans-serif;
+  font-size: 28px;
+  color: #142114;
+  padding: 10px 10px;
+}
+a {
+  text-decoration: none;
+  font-family: 'Asap', sans-serif;
+  cursor: pointer;
+  color: #5f9900;
+  font-size: 16px;
+  text-transform: uppercase;
+  width: auto;
+  border: 0;
+  padding: 8px 5px 8px 5px;
+  margin-top: 10px;
+  margin-left: -5px;
+  border-radius: 5px;
+  background-color: #c2f56e;
 }

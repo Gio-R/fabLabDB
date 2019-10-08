@@ -115,7 +115,7 @@ authHook = do
   sess <- readSession
   mUser <- getUserFromSession
   case mUser of
-    Nothing -> messageJson 401 "Utente non autorizzato"
+    Nothing -> redirect "no_auth" -- messageJson 401 "Admin non autorizzato"
     Just val -> return (val :&: oldCtx)
 
 -- |Admin authorization level
@@ -129,7 +129,7 @@ adminHook = do
     Just user ->
       case _userAdmin user of
         True -> return (user :&: oldCtx)
-        False -> messageJson 401 "Admin non autorizzato"
+        False -> redirect "no_auth" --messageJson 401 "Admin non autorizzato"
 
 -- |Function to get the user of the current session
 getUserFromSession :: ActionCtxT ctx (WebStateM Connection SessionVal st) (Maybe User)
@@ -230,6 +230,9 @@ app = do
     get root
       $ file "text/html"
       $ getClientFilePath "login.html"
+    get "no_auth"
+      $ file "text/html"
+      $ getClientFilePath "no_auth.html"
     post "login" $ do
       maybeUser <- param "username"
       maybePswd <- param "password"
@@ -487,6 +490,9 @@ app = do
       get "index.css"
         $ file "text/css"
         $ getClientFilePath "index.css"
+      get "common.js"
+        $ file "application/javascript"
+        $ getClientFilePath "common.js"
       prehook adminHook $ do
         -- routes for authenticated admins
         get "manager"

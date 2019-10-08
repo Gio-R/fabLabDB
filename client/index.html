@@ -1,14 +1,15 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="index.css">
-    <script src="index.js"></script>
+    <script type="application/javascript" src="index.js"></script>
+    <script type="application/javascript" src="./common.js"></script>
     <title>Menù</title>
 </head>
 <body>
 
-<div class="fixed">
+<header class="fixed">
   <nav class="menu">
       <ul class="menu_list">
         <li class="menu_item" id="anagrafiche">
@@ -62,18 +63,10 @@
             <li class="sub_menu_item" id="show_plastics">Visualizza plastiche</li>
           </ul>
         </li>
-        <li class="menu_item" id="manager">
-          Admin
-          <ul class="sub_menu">
-              <li class="sub_menu_item" id="insert_type">Inserisci nuovo tipo di lavorazione</li>
-              <li class="sub_menu_item" id="insert_printer">Inserisci nuova stampante</li>
-              <li class="sub_menu_item" id="insert_admin">Inserisci nuovo admin</li>
-          </ul>
-        </li>
       </ul>
     </nav>
-</div>
-<div class="scrollable">
+  </header>
+<main class="scrollable">
   <div id="user_input">
     <form class="hidden hideable" id="input_form" method="POST" enctype="multipart/form-data"></form>
   </div>
@@ -81,7 +74,12 @@
     <form class="hidden hideable" id="filters_form" method="POST" enctype="multipart/form-data"></form>
     <div class="hidden hideable" id="result_area"></div>
   </div>
-</div>
+</main>
+<footer>
+  <p>
+    <a href="./manager">Admin area</a>
+  </p>
+</footer>
 
 </body>
 </html> 
