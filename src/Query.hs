@@ -496,6 +496,22 @@ assignFilament pCode fCode =
                     }
                 ]
 
+-- |Selects the filaments assigned to the given print
+assignmentsByPrint :: Int -> (Connection -> IO (Either SqlError [Use]))
+assignmentsByPrint pCode =
+  \conn -> do
+    selectedPrint <- selectPrintFromCode pCode conn
+    case selectedPrint of
+      Left ex -> return $ Left ex
+      Right Nothing -> return $ Left $ SqlError "" NonfatalError "No print with the given code was present" "" ""
+      Right (Just p) ->
+        try
+          $ runBeam conn
+          $ runSelectReturningList
+          $ select
+          $ filter_ (\u -> _useCodiceStampa u ==. val_ (pk p))
+          $ allElementsOfTable _usi
+
 -- |Complete a print
 completePrint :: Int -> Day -> Double -> Scientific -> Scientific -> (Connection -> IO (Either SqlError ()))
 completePrint pCode deliveryDate workTime total materials =
@@ -613,6 +629,20 @@ assignProcessing cCode pCode =
                     _compositionCodiceIntaglio = val_ (pk cut)
                     }
                 ]
+
+-- |Selects the filaments assigned to the given cut
+assignmentsByCut :: Int -> (Connection -> IO (Either SqlError [Composition]))
+assignmentsByCut cCode = 
+  \conn -> do
+    selectedCut <- selectCutFromCode cCode conn
+    case selectedCut of
+      Left ex -> return $ Left ex
+      Right Nothing -> return $ Left $ SqlError "" NonfatalError "No cut with the given code was present" "" ""
+      Right (Just cut) -> try $ runBeam conn
+        $ runSelectReturningList
+        $ select
+        $ filter_ (\c -> _compositionCodiceIntaglio c ==. val_ (pk cut))
+        $ allElementsOfTable _composizioni
 
 -- |Complete a cut
 completeCut :: Int -> Day -> Double -> Scientific -> Scientific -> (Connection -> IO (Either SqlError ()))

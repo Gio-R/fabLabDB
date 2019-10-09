@@ -333,6 +333,21 @@ app = do
         case maybeMaterialCode of
           Nothing -> missingParameter
           Just code -> executeQueryListAndSendResult $ selectProcessingsByMaterials code
+      post "assign_cut_processing" $ do
+        maybeCut <- param "cut"
+        maybeProcessing <- param "processing"
+        if testParameters [maybeCut, maybeProcessing]
+          then
+            executeModifyQueryAndSendResult
+              $ assignProcessing
+                  (read $ fromJust maybeCut :: Int)
+                  (fromJust maybeProcessing)
+          else missingParameter
+      post "assignments_cut" $ do
+        maybeCut <- param "cut"
+        case maybeCut of
+          Nothing -> missingParameter
+          Just cut -> executeQueryListAndSendResult $ assignmentsByCut (read $ cut :: Int)
       post "insert_plastic" $ do
         maybeCode <- param "code"
         maybeName <- param "name"
@@ -396,6 +411,21 @@ app = do
                   (fromJust maybeCodePrinter)
                   (read $ fromJust maybeCode :: Int)
           else missingParameter
+      post "assign_print_filament" $ do
+        maybePrint <- param "print"
+        maybeFilament <- param "filament"
+        if testParameters [maybePrint, maybeFilament]
+          then
+            executeModifyQueryAndSendResult
+              $ assignFilament
+                  (read $ fromJust maybePrint :: Int)
+                  (fromJust maybeFilament)
+          else missingParameter
+      post "assignments_print" $ do
+        maybePrint <- param "print"
+        case maybePrint of
+          Nothing -> missingParameter
+          Just p -> executeQueryListAndSendResult $ assignmentsByCut (read $ p :: Int)
       post "modify_print" $ do
         maybePrint <- param "print"
         maybeDate <- param "date"
