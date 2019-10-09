@@ -425,7 +425,7 @@ app = do
         maybePrint <- param "print"
         case maybePrint of
           Nothing -> missingParameter
-          Just p -> executeQueryListAndSendResult $ assignmentsByCut (read $ p :: Int)
+          Just p -> executeQueryListAndSendResult $ assignmentsByPrint (read $ p :: Int)
       post "modify_print" $ do
         maybePrint <- param "print"
         maybeDate <- param "date"
