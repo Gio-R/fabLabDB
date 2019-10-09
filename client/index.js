@@ -479,7 +479,7 @@ function insertMaterial() {
                     }
                     var materialCode = createTextInput("code", "Codice materiale (2 caratteri)");
                     var nameInput = createTextInput("name", "Nome");
-                    var widthInput = createTextInput("width", "Spessore");
+                    var widthInput = createTextInput("width", "Spessore (mm)");
                     var descrInput = createTextInput("description", "Descrizione");
                     var okButton = document.createElement("button");
                     okButton.type = "button";
@@ -536,7 +536,7 @@ function showMaterials() {
                         elem.innerHTML = jsonResponse[index]._materialsclassCodiceClasse + " -- " + jsonResponse[index]._materialsclassNome;
                         list.appendChild(elem);
                     }
-                    var resultTable = createTable("result_table", "headers", ["code", "Codice"], ["class", "Classe"], ["name", "Nome"], ["width", "Spessore"], ["description", "Descrizione"]);
+                    var resultTable = createTable("result_table", "headers", ["code", "Codice"], ["class", "Classe"], ["name", "Nome"], ["width", "Spessore (mm)"], ["description", "Descrizione"]);
                     var setter = (jsonResponse, table) => {
                         var body = table.getElementsByTagName("tbody")[0];
                         showClearElem(body.id);
