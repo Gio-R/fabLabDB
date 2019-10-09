@@ -156,14 +156,70 @@ function completeCut() {
 
 /* assigns a processing to a cut*/
 function assignProcessing() {
-    // TODO:
-    showNotYetImplemented("result_area");
+    assignAToB("assign_cut_processing", "cuts", "processings", "cut", "processing",
+                cut => cut._cutCodiceIntaglio, cut => (cut._cutCodiceIntaglio + " -- " + cut._cutDataRichiesta + " -- " + cut._cutCfRichiedente),
+                processing => processing._processingCodiceLavorazione, processing => processing._processingCodiceLavorazione);
 }
 
 /* shows which processings are assigned to which cuts */
 function showCutsAssignments() {
-    // TODO:
-    showNotYetImplemented("result_area");
+    clearPage();
+    var form = document.getElementById("filters_form");
+    form.classList.remove("hidden");
+    fetchData("cuts", response => {
+        if (response.ok) {
+            response.json().then(jsonResponse => {
+                if (checkIfJsonIsError(jsonResponse) && jsonResponse["response"]["code"] != "200") {
+                    var error = document.createElement("P");
+                    error.innerHTML = jsonResponse["response"]["message"];
+                    error.classList.add("error");
+                    form.appendChild(error);
+                } else if (!checkIfJsonIsError(jsonResponse)) {
+                    var list = document.createElement("select");
+                    list.name = "cut";
+                    list.id = "cut_select";
+                    var elem = document.createElement("option");
+                    elem.value = "none";
+                    elem.innerHTML = "";
+                    list.appendChild(elem);
+                    form.appendChild(list);
+                    for (const index in jsonResponse) {
+                        var cut = jsonResponse[index];
+                        elem = document.createElement("option");
+                        elem.value = cut._cutCodiceIntaglio
+                        elem.innerHTML = cut._cutCodiceIntaglio + " -- " + cut._cutDataRichiesta + " -- " + cut._cutCfRichiedente;
+                        list.appendChild(elem);
+                    }
+                    var resultTable = createTable("result_table", "headers", ["code", "Codice lavorazione"]);
+                    document.getElementById("result_area").appendChild(resultTable);
+                    var setter = (jsonResponse, table) => {
+                        var body = table.getElementsByTagName("tbody")[0];
+                        showClearElem(body.id);
+                        for (const index in jsonResponse) {
+                            var listElem = document.createElement("tr");
+                            var composition = jsonResponse[index];
+                            listElem.classList.add("result_elem");
+                            var codeCell = document.createElement("td");
+                            codeCell.innerHTML = composition._compositionCodiceLavorazione;
+                            listElem.append(codeCell);
+                            body.appendChild(listElem);
+                        }
+                    };
+                    var changer = () => {
+                        if (list.value == "none") {
+                            setTableFromData([], resultTable, setter);
+                        } else {
+                            useChosenData("filters_form", "assignments_cut", data => {
+                                setTableFromData(data, resultTable, setter);
+                            });
+                        }
+                    };
+                    changer();
+                    list.onchange = () => changer();
+                }
+            });
+        }
+    });
 }
 
 /* shows all the cuts in the database*/
@@ -378,20 +434,71 @@ function completePrint() {
 
 /* assigns a filament to a print */
 function assignFilament() {
-    // TODO:
-    showNotYetImplemented("result_area");
-    /*
     assignAToB("assign_print_filament", "prints", "filaments", "print", "filament", print => print._printCodiceStampa, 
                 print => (print._printCodiceStampa + " -- " + print._printDataRichiesta + " -- " + print._printCfRichiedente),
                 filament => filament._filamentCodiceFilamento, 
                 filament => (filament._filamentMarca + " " + filament._filamentColore));
-    */
 }
 
 /* shows which filaments are assigned to which prints */
 function showPrintsAssignments() {
-    // TODO:
-    showNotYetImplemented("result_area");
+    clearPage();
+    var form = document.getElementById("filters_form");
+    form.classList.remove("hidden");
+    fetchData("prints", response => {
+        if (response.ok) {
+            response.json().then(jsonResponse => {
+                if (checkIfJsonIsError(jsonResponse) && jsonResponse["response"]["code"] != "200") {
+                    var error = document.createElement("P");
+                    error.innerHTML = jsonResponse["response"]["message"];
+                    error.classList.add("error");
+                    form.appendChild(error);
+                } else if (!checkIfJsonIsError(jsonResponse)) {
+                    var list = document.createElement("select");
+                    list.name = "print";
+                    list.id = "print_select";
+                    var elem = document.createElement("option");
+                    elem.value = "none";
+                    elem.innerHTML = "";
+                    list.appendChild(elem);
+                    form.appendChild(list);
+                    for (const index in jsonResponse) {
+                        var print = jsonResponse[index];
+                        elem = document.createElement("option");
+                        elem.value = print._printCodiceStampa
+                        elem.innerHTML = print._printCodiceStampa + " -- " + print._printDataRichiesta + " -- " + print._printCfRichiedente;
+                        list.appendChild(elem);
+                    }
+                    var resultTable = createTable("result_table", "headers", ["code", "Codice filamento"]);
+                    document.getElementById("result_area").appendChild(resultTable);
+                    var setter = (jsonResponse, table) => {
+                        var body = table.getElementsByTagName("tbody")[0];
+                        showClearElem(body.id);
+                        for (const index in jsonResponse) {
+                            var listElem = document.createElement("tr");
+                            var use = jsonResponse[index];
+                            listElem.classList.add("result_elem");
+                            var codeCell = document.createElement("td");
+                            codeCell.innerHTML = use._useCodiceFilamento;
+                            listElem.append(codeCell);
+                            body.appendChild(listElem);
+                        }
+                    };
+                    var changer = () => {
+                        if (list.value == "none") {
+                            setTableFromData([], resultTable, setter);
+                        } else {
+                            useChosenData("filters_form", "assignments_print", data => {
+                                setTableFromData(data, resultTable, setter);
+                            });
+                        }
+                    };
+                    changer();
+                    list.onchange = () => changer();
+                }
+            });
+        }
+    });
 }
 
 /* assigns a printer to a print */
