@@ -2,3 +2,4 @@
 haskellDB.cabal
 *~
 *.lock
+*.cfg
