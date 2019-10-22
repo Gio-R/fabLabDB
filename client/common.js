@@ -45,6 +45,10 @@ function clearPage() {
             hideableElements[i].removeChild(hideableElements[i].firstChild);
         }
     }
+    var groupHideableElements = document.getElementsByClassName("group_hideable");
+    for (var i = 0; i < groupHideableElements.length; i++) {
+        groupHideableElements[i].classList.add("hidden");
+    }
 }
 
 /* makes visible the element with elemId, as if it was created anew */
@@ -55,6 +59,10 @@ function showClearElem(elemId) {
             elem.removeChild(elem.firstChild);
         }
         elem.classList.remove("hidden");
+        while (elem.parentElement) {
+            elem.parentElement.classList.remove("hidden");
+            elem = elem.parentElement;
+        }
     }
 }
 
