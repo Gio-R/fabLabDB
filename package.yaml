@@ -30,6 +30,7 @@ dependencies:
 - hvect
 - memory
 - mtl
+- optparse-applicative
 - postgresql-libpq
 - scientific
 - Spock >= 0.11

@@ -42,7 +42,6 @@ data ApiCfg
         acfg_db_location :: Text,
         acfg_db_port :: Integer,
         acfg_db_user :: Text,
-        acfg_db_pswd :: Text,
         acfg_port :: Int,
         acfg_name :: Text
         }
@@ -72,10 +71,9 @@ parseConfig cfgFile = do
   dbLocation <- C.require cfg "dbLocation"
   dbPort <- C.require cfg "dbPort"
   dbUser <- C.require cfg "dbUser"
-  dbPassword <- C.require cfg "dbPswd"
   port <- C.require cfg "port"
   name <- C.require cfg "apiName"
-  return (ApiCfg db dbLocation dbPort dbUser dbPassword port name)
+  return (ApiCfg db dbLocation dbPort dbUser port name)
 
 -- |Function used to get the connection used to interrogate the database
 getFabLabConnection
@@ -210,13 +208,14 @@ missingParameter :: MonadIO m => ActionCtxT ctx m b
 missingParameter = messageJson 422 "Parametro mancante"
 
 -- server functions
-runServer :: ApiCfg -> IO ()
-runServer cfg =
+-- |Runs the server using the given configuration and the password for the database
+runServer :: ApiCfg -> String -> IO ()
+runServer cfg pswd =
   let ioConn =
         getFabLabConnection (unpack $ acfg_db_location cfg)
           (acfg_db_port cfg)
           (unpack $ acfg_db_user cfg)
-          (unpack $ acfg_db_pswd cfg)
+          pswd
           (unpack $ acfg_db cfg)
    in do
         spockCfg <- defaultSpockCfg Nothing (getPoolOrConn ioConn) ()
