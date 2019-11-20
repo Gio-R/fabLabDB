@@ -455,7 +455,7 @@ app = do
           else missingParameter
       post "assign_cut_operator" $ do
         maybeCf <- param "operator"
-        maybeCode <- param "print"
+        maybeCode <- param "cut"
         if testParameters [maybeCode, maybeCf]
           then
             executeModifyQueryAndSendResult
